@@ -11,6 +11,8 @@ import {
   CircleAlert,
   ContactRound,
   Download,
+  Eye,
+  EyeOff,
   FileDown,
   FileUp,
   Inbox,
@@ -19,6 +21,7 @@ import {
   MapPin,
   MessageCircle,
   Search,
+  ShieldCheck,
   StickyNote,
   SlidersHorizontal,
   Sparkles,
@@ -52,6 +55,12 @@ import {
   serializeWorkspace,
   updatePersonAnnotation,
 } from './workspace'
+import {
+  DEFAULT_PRIVACY_MODE,
+  type PrivacyAliases,
+  createPrivacyAliases,
+  personPresentation,
+} from './privacy'
 
 const PAGE_SIZE = 60
 
@@ -93,11 +102,6 @@ function downloadWorkspace(workspace: WorkspaceFile) {
 function formatDate(date: Date | null, fallback = '—') {
   if (!date) return fallback
   return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
-}
-
-function initials(person: Connection) {
-  const value = `${person.firstName[0] ?? ''}${person.lastName[0] ?? ''}`.toUpperCase()
-  return value || '?'
 }
 
 function linkedInUrl(profileUrl: string) {
@@ -193,6 +197,7 @@ function Brand() {
 }
 
 function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }) {
+  const [privacyMode, setPrivacyMode] = useState(DEFAULT_PRIVACY_MODE)
   const [query, setQuery] = useState('')
   const [selectedRoles, setSelectedRoles] = useState<Set<RoleCategory>>(new Set())
   const [conversation, setConversation] = useState<ConversationFilter>('all')
@@ -207,6 +212,7 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
   const workspaceInputRef = useRef<HTMLInputElement>(null)
 
   const identifiable = useMemo(() => data.connections.filter((person) => person.isIdentifiable), [data])
+  const privacyAliases = useMemo(() => createPrivacyAliases(identifiable), [identifiable])
   const cityOptions = useMemo(
     () => [...new Set(Object.values(workspace.people)
       .map((annotation) => annotation.location?.value.trim() ?? '')
@@ -220,33 +226,40 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
       const stats = statsFor(data, person.id)
       const annotation = workspace.people[person.id]
       const location = annotation?.location?.value.trim() ?? ''
-      const matchesQuery = !needle || [
-        person.fullName,
-        person.company,
-        person.position,
-        location,
-        annotation?.tags?.value.join(' ') ?? '',
-        annotation?.notes?.value ?? '',
-      ]
+      const presentation = personPresentation(person, privacyAliases, privacyMode)
+      const searchValues = privacyMode
+        ? [presentation.name, presentation.company, presentation.position, person.roles.join(' ')]
+        : [
+            person.fullName,
+            person.company,
+            person.position,
+            location,
+            annotation?.tags?.value.join(' ') ?? '',
+            annotation?.notes?.value ?? '',
+          ]
+      const matchesQuery = !needle || searchValues
         .some((value) => value.toLocaleLowerCase().includes(needle))
       const matchesRole = selectedRoles.size === 0 || person.roles.some((role) => selectedRoles.has(role))
       const matchesConversation = conversation === 'all'
         || (conversation === 'any' ? stats.status !== 'none' : stats.status === conversation)
-      const matchesLocation = locationFilter === 'all'
+      const matchesLocation = privacyMode || locationFilter === 'all'
         || (locationFilter === 'unknown' ? !location : location.toLocaleLowerCase() === locationFilter.toLocaleLowerCase())
       return matchesQuery && matchesRole && matchesConversation && matchesLocation
-        && (!dubaiSignalsOnly || person.dubaiCompanySignal)
+        && (privacyMode || !dubaiSignalsOnly || person.dubaiCompanySignal)
     })
 
     return people.sort((a, b) => {
-      if (sort === 'name') return a.fullName.localeCompare(b.fullName)
+      if (sort === 'name') {
+        return personPresentation(a, privacyAliases, privacyMode).name
+          .localeCompare(personPresentation(b, privacyAliases, privacyMode).name)
+      }
       if (sort === 'messages') return statsFor(data, b.id).messageCount - statsFor(data, a.id).messageCount
       if (sort === 'contacted') {
         return (statsFor(data, b.id).lastMessageAt?.valueOf() ?? 0) - (statsFor(data, a.id).lastMessageAt?.valueOf() ?? 0)
       }
       return (b.connectedOn?.valueOf() ?? 0) - (a.connectedOn?.valueOf() ?? 0)
     })
-  }, [conversation, data, dubaiSignalsOnly, identifiable, locationFilter, query, selectedRoles, sort, workspace])
+  }, [conversation, data, dubaiSignalsOnly, identifiable, locationFilter, privacyAliases, privacyMode, query, selectedRoles, sort, workspace])
 
   useEffect(() => setVisibleCount(PAGE_SIZE), [query, selectedRoles, conversation, locationFilter, dubaiSignalsOnly, sort])
 
@@ -255,7 +268,20 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
   const messagedCount = identifiable.filter((person) => statsFor(data, person.id).status !== 'none').length
   const twoWayCount = identifiable.filter((person) => statsFor(data, person.id).status === 'two-way').length
   const activeFilterCount = selectedRoles.size + (conversation === 'all' ? 0 : 1)
-    + (locationFilter === 'all' ? 0 : 1) + (dubaiSignalsOnly ? 1 : 0)
+    + (!privacyMode && locationFilter !== 'all' ? 1 : 0) + (!privacyMode && dubaiSignalsOnly ? 1 : 0)
+
+  const togglePrivacyMode = () => {
+    if (privacyMode) {
+      if (!window.confirm('Turn off Privacy mode and show real names, companies, messages, and annotations?')) return
+      setPrivacyMode(false)
+      return
+    }
+    setPrivacyMode(true)
+    setQuery('')
+    setLocationFilter('all')
+    setDubaiSignalsOnly(false)
+    setSort('connected')
+  }
 
   const persistWorkspace = (next: WorkspaceFile) => {
     setWorkspace(next)
@@ -309,6 +335,14 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
         <Brand />
         <div className="header-actions">
           <span className="local-status"><span /> Local session</span>
+          <button
+            className={`privacy-toggle ${privacyMode ? 'active' : ''}`}
+            onClick={togglePrivacyMode}
+            aria-pressed={privacyMode}
+          >
+            {privacyMode ? <EyeOff size={16} /> : <Eye size={16} />}
+            {privacyMode ? 'Privacy on' : 'Privacy mode'}
+          </button>
           <details className="workspace-menu">
             <summary>
               <StickyNote size={16} /> Workspace
@@ -340,6 +374,10 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
         </div>
       )}
 
+      {privacyMode && (
+        <div className="privacy-watermark"><ShieldCheck size={15} /> Privacy mode · display data is masked</div>
+      )}
+
       <main className="dashboard">
         <section className="dashboard-heading">
           <div>
@@ -360,12 +398,16 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
         <section className="location-notice">
           <div className="notice-icon"><MapPin size={20} /></div>
           <div>
-            <strong>LinkedIn did not include connection locations.</strong>
-            <span>Add a city when reviewing a person. Company-name hints are available separately and are never treated as locations.</span>
+            <strong>{privacyMode ? 'Locations and annotations are hidden.' : 'LinkedIn did not include connection locations.'}</strong>
+            <span>{privacyMode
+              ? 'Turn off Privacy mode to view or edit personal context. Source files and workspace data are unchanged.'
+              : 'Add a city when reviewing a person. Company-name hints are available separately and are never treated as locations.'}</span>
           </div>
-          <button onClick={() => setDubaiSignalsOnly((current) => !current)} className={dubaiSignalsOnly ? 'is-active' : ''}>
-            {dubaiSignalsOnly && <Check size={14} />} Dubai company hints
-          </button>
+          {!privacyMode && (
+            <button onClick={() => setDubaiSignalsOnly((current) => !current)} className={dubaiSignalsOnly ? 'is-active' : ''}>
+              {dubaiSignalsOnly && <Check size={14} />} Dubai company hints
+            </button>
+          )}
         </section>
 
         <section className="explorer">
@@ -414,15 +456,19 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
             </FilterSection>
 
             <FilterSection title="Location annotation">
-              <div className="select-wrap">
-                <MapPin size={15} />
-                <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}>
-                  <option value="all">All locations</option>
-                  <option value="unknown">Not annotated</option>
-                  {cityOptions.map((city) => <option key={city} value={city}>{city}</option>)}
-                </select>
-                <ChevronDown size={14} />
-              </div>
+              {privacyMode ? (
+                <div className="privacy-filter-note"><EyeOff size={14} /> Hidden in Privacy mode</div>
+              ) : (
+                <div className="select-wrap">
+                  <MapPin size={15} />
+                  <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}>
+                    <option value="all">All locations</option>
+                    <option value="unknown">Not annotated</option>
+                    {cityOptions.map((city) => <option key={city} value={city}>{city}</option>)}
+                  </select>
+                  <ChevronDown size={14} />
+                </div>
+              )}
             </FilterSection>
 
             {activeFilterCount > 0 && <button className="clear-filter" onClick={clearFilters}>Clear {activeFilterCount} filters</button>}
@@ -432,7 +478,11 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
             <div className="toolbar">
               <label className="search-box">
                 <Search size={18} />
-                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search person, company, role, or city" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={privacyMode ? 'Search aliases or normalized roles' : 'Search person, company, role, or city'}
+                />
                 {query && <button onClick={() => setQuery('')}><X size={15} /></button>}
               </label>
               <button className="mobile-filter-button" onClick={() => setFiltersOpen(true)}>
@@ -460,7 +510,15 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
                 <span>Person</span><span>Role</span><span>Relationship</span><span>Connected</span>
               </div>
               {filtered.slice(0, visibleCount).map((person) => (
-                <PersonRow key={person.id} person={person} data={data} annotation={workspace.people[person.id]} onClick={() => setSelectedId(person.id)} />
+                <PersonRow
+                  key={person.id}
+                  person={person}
+                  data={data}
+                  annotation={workspace.people[person.id]}
+                  privacyMode={privacyMode}
+                  privacyAliases={privacyAliases}
+                  onClick={() => setSelectedId(person.id)}
+                />
               ))}
               {filtered.length === 0 && (
                 <div className="empty-results">
@@ -485,6 +543,8 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
           person={selected}
           data={data}
           annotation={workspace.people[selected.id]}
+          privacyMode={privacyMode}
+          privacyAliases={privacyAliases}
           onAnnotationChange={(draft) => updateAnnotation(selected.id, draft)}
           onClose={() => setSelectedId(null)}
         />
@@ -506,22 +566,30 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
   return <section className="filter-section"><h3>{title}</h3>{children}</section>
 }
 
-function PersonRow({ person, data, annotation, onClick }: { person: Connection; data: ArchiveData; annotation?: PersonAnnotation; onClick: () => void }) {
+export function PersonRow({ person, data, annotation, privacyMode, privacyAliases, onClick }: {
+  person: Connection
+  data: ArchiveData
+  annotation?: PersonAnnotation
+  privacyMode: boolean
+  privacyAliases: PrivacyAliases
+  onClick: () => void
+}) {
   const stats = statsFor(data, person.id)
   const location = annotation?.location?.value
+  const presentation = personPresentation(person, privacyAliases, privacyMode)
   return (
     <button className="person-row" onClick={onClick}>
       <span className="person-cell">
-        <span className="avatar">{initials(person)}</span>
-        <span className="person-name"><strong>{person.fullName}</strong><small><Building2 size={13} /> {person.company || 'Company unavailable'}</small></span>
+        <span className="avatar">{presentation.avatar}</span>
+        <span className="person-name"><strong>{presentation.name}</strong><small><Building2 size={13} /> {presentation.company}</small></span>
       </span>
       <span className="role-cell">
-        <strong>{person.position || 'Position unavailable'}</strong>
+        <strong>{presentation.position}</strong>
         <span className="tag-row">
           {person.roles.slice(0, 2).map((role) => <span className="role-tag" key={role}>{role}</span>)}
-          {annotation?.tags?.value.slice(0, 1).map((tag) => <span className="personal-tag" key={`personal-${tag}`}>{tag}</span>)}
-          {location && <span className="location-tag"><MapPin size={11} /> {location}</span>}
-          {!location && person.dubaiCompanySignal && <span className="hint-tag">Dubai company hint</span>}
+          {annotation?.tags?.value.length ? <span className="personal-tag">{privacyMode ? 'Private tag' : annotation.tags.value[0]}</span> : null}
+          {location && <span className="location-tag"><MapPin size={11} /> {privacyMode ? 'Location hidden' : location}</span>}
+          {!privacyMode && !location && person.dubaiCompanySignal && <span className="hint-tag">Dubai company hint</span>}
         </span>
       </span>
       <span className="relationship-cell">
@@ -534,10 +602,12 @@ function PersonRow({ person, data, annotation, onClick }: { person: Connection; 
   )
 }
 
-function PersonDrawer({ person, data, annotation, onAnnotationChange, onClose }: {
+export function PersonDrawer({ person, data, annotation, privacyMode, privacyAliases, onAnnotationChange, onClose }: {
   person: Connection
   data: ArchiveData
   annotation?: PersonAnnotation
+  privacyMode: boolean
+  privacyAliases: PrivacyAliases
   onAnnotationChange: (draft: AnnotationDraft) => void
   onClose: () => void
 }) {
@@ -550,7 +620,8 @@ function PersonDrawer({ person, data, annotation, onAnnotationChange, onClose }:
   const [draftTags, setDraftTags] = useState(tags.join(', '))
   const [draftNotes, setDraftNotes] = useState(notes)
   const [messageLimit, setMessageLimit] = useState(8)
-  const externalUrl = linkedInUrl(person.profileUrl)
+  const presentation = personPresentation(person, privacyAliases, privacyMode)
+  const externalUrl = privacyMode ? '' : linkedInUrl(person.profileUrl)
   const parsedDraftTags = [...new Set(draftTags.split(',').map((tag) => tag.trim()).filter(Boolean))]
   const annotationDates = [
     annotation?.location?.updatedAt,
@@ -572,26 +643,32 @@ function PersonDrawer({ person, data, annotation, onAnnotationChange, onClose }:
 
   return (
     <div className="drawer-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <aside className="person-drawer" role="dialog" aria-modal="true" aria-label={`${person.fullName} details`}>
+      <aside className="person-drawer" role="dialog" aria-modal="true" aria-label={`${presentation.name} details`}>
         <button className="drawer-close" onClick={onClose} aria-label="Close"><X size={19} /></button>
         <div className="drawer-profile">
-          <div className="avatar avatar-large">{initials(person)}</div>
+          <div className="avatar avatar-large">{presentation.avatar}</div>
           <div>
             <p className="overline">Connection</p>
-            <h2>{person.fullName}</h2>
-            <p>{person.position || 'Position unavailable'}{person.company ? ` at ${person.company}` : ''}</p>
+            <h2>{presentation.name}</h2>
+            <p>{presentation.position}{presentation.company !== 'Company unavailable' ? ` at ${presentation.company}` : ''}</p>
           </div>
         </div>
         <div className="drawer-tags">
           {person.roles.map((role) => <span className="role-tag" key={role}>{role}</span>)}
-          {person.dubaiCompanySignal && <span className="hint-tag">Company mentions Dubai</span>}
+          {privacyMode && annotation && <span className="personal-tag">Private annotations hidden</span>}
+          {!privacyMode && person.dubaiCompanySignal && <span className="hint-tag">Company mentions Dubai</span>}
         </div>
         <div className="drawer-actions">
           {externalUrl && <a href={externalUrl} target="_blank" rel="noreferrer">Open LinkedIn <ArrowUpRight size={15} /></a>}
           <span><CalendarDays size={15} /> Connected {formatDate(person.connectedOn, person.connectedOnRaw)}</span>
         </div>
 
-        <section className="context-editor">
+        {privacyMode ? (
+          <section className="privacy-redaction-card">
+            <EyeOff size={20} />
+            <div><strong>Annotations hidden</strong><span>Locations, tags, and notes are not rendered while Privacy mode is active.</span></div>
+          </section>
+        ) : <section className="context-editor">
           <div className="context-editor-heading">
             <StickyNote size={18} />
             <span><strong>Your context</strong><small>Saved locally and included in workspace exports.</small></span>
@@ -619,7 +696,7 @@ function PersonDrawer({ person, data, annotation, onAnnotationChange, onClose }:
               <Check size={15} /> Save annotation
             </button>
           </div>
-        </section>
+        </section>}
 
         <section className="conversation-section">
           <div className="section-title-row">
@@ -637,10 +714,10 @@ function PersonDrawer({ person, data, annotation, onAnnotationChange, onClose }:
               <div className="message-list">
                 {messages.slice(0, messageLimit).map((message, index) => (
                   <article className={`message-card ${message.direction}`} key={`${message.conversationId}-${message.dateRaw}-${index}`}>
-                    <header><strong>{message.direction === 'sent' ? 'You' : message.from}</strong><time>{formatDate(message.date)}</time></header>
-                    {message.subject && <b>{message.subject}</b>}
-                    <p>{message.content || 'Attachment or empty message'}</p>
-                    {message.attachmentUrl.startsWith('https://') && (
+                    <header><strong>{message.direction === 'sent' ? 'You' : presentation.name}</strong><time>{formatDate(message.date)}</time></header>
+                    {!privacyMode && message.subject && <b>{message.subject}</b>}
+                    <p>{privacyMode ? 'Message content hidden in Privacy mode.' : message.content || 'Attachment or empty message'}</p>
+                    {!privacyMode && message.attachmentUrl.startsWith('https://') && (
                       <a href={message.attachmentUrl} target="_blank" rel="noreferrer">Attachment link <ArrowUpRight size={12} /></a>
                     )}
                   </article>
