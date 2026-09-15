@@ -75,6 +75,17 @@ const conversationLabels: Record<ConversationStatus, string> = {
   none: 'No messages found',
 }
 
+const conversationFilterOptions: Array<[ConversationFilter, string]> = [
+  ['all', 'All connections'],
+  ['any', 'Any message'],
+  ['two-way', 'Two-way'],
+  ['outbound', 'Outbound only'],
+  ['inbound', 'Inbound only'],
+  ['none', 'No messages found'],
+]
+
+const conversationFilterLabels = Object.fromEntries(conversationFilterOptions) as Record<ConversationFilter, string>
+
 function loadWorkspace(data: ArchiveData): WorkspaceFile {
   let workspace = createWorkspace(data)
   try {
@@ -129,8 +140,10 @@ function ImportScreen({ onImport }: { onImport: (file: File) => Promise<void> })
   return (
     <main className="import-page">
       <nav className="landing-nav">
-        <Brand />
-        <span className="privacy-pill"><LockKeyhole size={14} /> Your data stays here</span>
+        <div className="landing-nav-frame">
+          <Brand />
+          <span className="privacy-pill"><LockKeyhole size={14} /> Your data stays here</span>
+        </div>
       </nav>
 
       <section className="hero">
@@ -331,38 +344,42 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <Brand />
-        <div className="header-actions">
-          <span className="local-status"><span /> Local session</span>
-          <button
-            className={`privacy-toggle ${privacyMode ? 'active' : ''}`}
-            onClick={togglePrivacyMode}
-            aria-pressed={privacyMode}
-          >
-            {privacyMode ? <EyeOff size={16} /> : <Eye size={16} />}
-            {privacyMode ? 'Privacy on' : 'Privacy mode'}
-          </button>
-          <details className="workspace-menu">
-            <summary>
-              <StickyNote size={16} /> Workspace
-              {countAnnotations(workspace) > 0 && <span>{countAnnotations(workspace)}</span>}
-              <ChevronDown size={13} />
-            </summary>
-            <div className="workspace-menu-panel">
-              <button onClick={() => downloadWorkspace(workspace)}><FileDown size={16} /><span><strong>Export workspace</strong><small>Download annotations as JSON</small></span></button>
-              <button onClick={() => workspaceInputRef.current?.click()}><FileUp size={16} /><span><strong>Import workspace</strong><small>Restore or merge a backup</small></span></button>
-              <button className="danger" onClick={clearWorkspace}><Trash2 size={16} /><span><strong>Clear annotations</strong><small>Remove local locations, tags, and notes</small></span></button>
-            </div>
-          </details>
-          <input
-            ref={workspaceInputRef}
-            type="file"
-            accept="application/json,.json"
-            hidden
-            onChange={(event) => void importWorkspace(event.target.files?.[0])}
-          />
-          <button className="quiet-button" onClick={onReset}><ArrowLeft size={16} /> Close archive</button>
+      <header className={`app-header ${privacyMode ? 'privacy-active' : ''}`}>
+        <div className="app-header-frame">
+          <div className="header-identity">
+            <Brand />
+            <span className="local-status"><span /> Local session</span>
+          </div>
+          <div className="header-actions">
+            <button
+              className={`privacy-toggle ${privacyMode ? 'active' : ''}`}
+              onClick={togglePrivacyMode}
+              aria-pressed={privacyMode}
+            >
+              {privacyMode ? <EyeOff size={16} /> : <Eye size={16} />}
+              {privacyMode ? 'Privacy on' : 'Privacy mode'}
+            </button>
+            <details className="workspace-menu">
+              <summary>
+                <StickyNote size={16} /> <span className="workspace-label">Workspace</span>
+                {countAnnotations(workspace) > 0 && <span className="workspace-count">{countAnnotations(workspace)}</span>}
+                <ChevronDown size={13} />
+              </summary>
+              <div className="workspace-menu-panel">
+                <button onClick={() => downloadWorkspace(workspace)}><FileDown size={16} /><span><strong>Export workspace</strong><small>Download annotations as JSON</small></span></button>
+                <button onClick={() => workspaceInputRef.current?.click()}><FileUp size={16} /><span><strong>Import workspace</strong><small>Restore or merge a backup</small></span></button>
+                <button className="danger" onClick={clearWorkspace}><Trash2 size={16} /><span><strong>Clear annotations</strong><small>Remove local locations, tags, and notes</small></span></button>
+              </div>
+            </details>
+            <input
+              ref={workspaceInputRef}
+              type="file"
+              accept="application/json,.json"
+              hidden
+              onChange={(event) => void importWorkspace(event.target.files?.[0])}
+            />
+            <button className="quiet-button close-archive" onClick={onReset}><ArrowLeft size={16} /> Close archive</button>
+          </div>
         </div>
       </header>
 
@@ -412,6 +429,10 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
 
         <section className="explorer">
           <aside className={`filter-panel ${filtersOpen ? 'mobile-open' : ''}`}>
+            <div className="filter-panel-heading">
+              <span><SlidersHorizontal size={16} /><strong>Filters</strong></span>
+              {activeFilterCount > 0 && <b>{activeFilterCount}</b>}
+            </div>
             <div className="filter-mobile-title">
               <strong>Filters</strong><button onClick={() => setFiltersOpen(false)}><X size={18} /></button>
             </div>
@@ -439,14 +460,7 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
 
             <FilterSection title="Conversation">
               <div className="radio-list">
-                {([
-                  ['all', 'All connections'],
-                  ['any', 'Any message'],
-                  ['two-way', 'Two-way'],
-                  ['outbound', 'Outbound only'],
-                  ['inbound', 'Inbound only'],
-                  ['none', 'No messages found'],
-                ] as Array<[ConversationFilter, string]>).map(([value, label]) => (
+                {conversationFilterOptions.map(([value, label]) => (
                   <label key={value}>
                     <input type="radio" checked={conversation === value} onChange={() => setConversation(value)} />
                     <span className="custom-radio" /> {label}
@@ -475,6 +489,10 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
           </aside>
 
           <div className="results-panel">
+            <div className="results-heading">
+              <div><p className="overline">Network explorer</p><h2>Connections</h2></div>
+              <span><strong>{filtered.length.toLocaleString()}</strong> of {identifiable.length.toLocaleString()}</span>
+            </div>
             <div className="toolbar">
               <label className="search-box">
                 <Search size={18} />
@@ -500,10 +518,36 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
               </label>
             </div>
 
-            <div className="result-summary">
-              <span><strong>{filtered.length.toLocaleString()}</strong> people</span>
-              {selectedRoles.size > 0 && <span className="summary-tag">{[...selectedRoles].join(' · ')}</span>}
-            </div>
+            {activeFilterCount > 0 && (
+              <div className="active-filters" aria-label="Active filters">
+                <span className="active-filters-label">Active</span>
+                {[...selectedRoles].map((role) => (
+                  <button key={role} onClick={() => {
+                    const next = new Set(selectedRoles)
+                    next.delete(role)
+                    setSelectedRoles(next)
+                  }}>
+                    {role}<X size={12} />
+                  </button>
+                ))}
+                {conversation !== 'all' && (
+                  <button onClick={() => setConversation('all')}>
+                    {conversationFilterLabels[conversation]}<X size={12} />
+                  </button>
+                )}
+                {!privacyMode && locationFilter !== 'all' && (
+                  <button onClick={() => setLocationFilter('all')}>
+                    {locationFilter === 'unknown' ? 'Location: Not annotated' : `Location: ${locationFilter}`}<X size={12} />
+                  </button>
+                )}
+                {!privacyMode && dubaiSignalsOnly && (
+                  <button onClick={() => setDubaiSignalsOnly(false)}>
+                    Dubai company hints<X size={12} />
+                  </button>
+                )}
+                <button className="clear-all-filters" onClick={clearFilters}>Clear all</button>
+              </div>
+            )}
 
             <div className="people-list">
               <div className="people-head">
@@ -522,7 +566,8 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
               ))}
               {filtered.length === 0 && (
                 <div className="empty-results">
-                  <Search size={24} /><strong>No people match these filters</strong><span>Try clearing a role or broadening your search.</span>
+                  <span className="empty-results-icon"><Search size={23} /></span>
+                  <strong>No people match this view</strong><span>Try removing a filter or broadening your search.</span>
                   <button onClick={clearFilters}>Clear filters</button>
                 </div>
               )}
