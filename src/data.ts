@@ -59,6 +59,7 @@ export interface ConversationStats {
 }
 
 export interface ArchiveData {
+  sourceFileName: string
   connections: Connection[]
   messagesByPerson: Map<string, MessageRecord[]>
   statsByPerson: Map<string, ConversationStats>
@@ -176,7 +177,7 @@ function fileText(files: Record<string, Uint8Array>, fileName: string): string {
   return strFromU8(entry[1])
 }
 
-export async function parseLinkedInArchive(buffer: ArrayBuffer): Promise<ArchiveData> {
+export async function parseLinkedInArchive(buffer: ArrayBuffer, sourceFileName = 'LinkedIn export.zip'): Promise<ArchiveData> {
   let files: Record<string, Uint8Array>
   try {
     files = unzipSync(new Uint8Array(buffer))
@@ -277,6 +278,7 @@ export async function parseLinkedInArchive(buffer: ArrayBuffer): Promise<Archive
   }
 
   return {
+    sourceFileName,
     connections,
     messagesByPerson,
     statsByPerson,

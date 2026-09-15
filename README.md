@@ -18,10 +18,13 @@ Open the local address printed by Vite, then choose the complete ZIP downloaded 
 - Search and filter connections by name, company, title, and normalized role
 - Filter conversation relationships as two-way, outbound-only, inbound-only, or no message found
 - View per-person message counts, recency, and message history
-- Add private location annotations stored in local browser storage
+- Add private locations, tags, and notes stored locally in the browser
+- Export and restore annotations with a versioned Common Ground workspace file
 - Identify company names that mention Dubai without misrepresenting them as a person's location
 
 LinkedIn does not include connection locations in this export. “No messages found” means that no matching profile URL was present in the exported message history; it is not proof that a conversation never happened elsewhere.
+
+Workspace exports contain annotations and basic source-archive metadata. They do not contain LinkedIn message bodies.
 
 ## Verification
 

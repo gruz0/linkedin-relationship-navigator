@@ -11,14 +11,19 @@ import {
   CircleAlert,
   ContactRound,
   Download,
+  FileDown,
+  FileUp,
   Inbox,
   LoaderCircle,
   LockKeyhole,
   MapPin,
   MessageCircle,
   Search,
+  StickyNote,
   SlidersHorizontal,
   Sparkles,
+  Tags,
+  Trash2,
   UploadCloud,
   Users,
   X,
@@ -32,11 +37,24 @@ import {
   parseLinkedInArchive,
   statsFor,
 } from './data'
+import {
+  LEGACY_LOCATION_STORAGE_KEY,
+  WORKSPACE_STORAGE_KEY,
+  type AnnotationDraft,
+  type PersonAnnotation,
+  type WorkspaceFile,
+  attachArchive,
+  countAnnotations,
+  createWorkspace,
+  mergeWorkspaces,
+  migrateLegacyLocations,
+  parseWorkspaceFile,
+  serializeWorkspace,
+  updatePersonAnnotation,
+} from './workspace'
 
-const LOCATION_STORAGE_KEY = 'common-ground.locations.v1'
 const PAGE_SIZE = 60
 
-type LocationMap = Record<string, string>
 type ConversationFilter = ConversationStatus | 'all' | 'any'
 type LocationFilter = 'all' | 'unknown' | string
 type SortMode = 'connected' | 'contacted' | 'messages' | 'name'
@@ -48,12 +66,28 @@ const conversationLabels: Record<ConversationStatus, string> = {
   none: 'No messages found',
 }
 
-function loadLocations(): LocationMap {
+function loadWorkspace(data: ArchiveData): WorkspaceFile {
+  let workspace = createWorkspace(data)
   try {
-    return JSON.parse(localStorage.getItem(LOCATION_STORAGE_KEY) ?? '{}') as LocationMap
+    const saved = localStorage.getItem(WORKSPACE_STORAGE_KEY)
+    if (saved) workspace = attachArchive(parseWorkspaceFile(saved), data)
   } catch {
-    return {}
+    // A broken local copy must not prevent the user from opening their archive.
   }
+  workspace = migrateLegacyLocations(workspace, localStorage.getItem(LEGACY_LOCATION_STORAGE_KEY))
+  localStorage.setItem(WORKSPACE_STORAGE_KEY, serializeWorkspace(workspace))
+  localStorage.removeItem(LEGACY_LOCATION_STORAGE_KEY)
+  return workspace
+}
+
+function downloadWorkspace(workspace: WorkspaceFile) {
+  const blob = new Blob([serializeWorkspace(workspace)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'common-ground.workspace.json'
+  link.click()
+  URL.revokeObjectURL(url)
 }
 
 function formatDate(date: Date | null, fallback = '—') {
@@ -167,21 +201,33 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
   const [sort, setSort] = useState<SortMode>('connected')
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [locations, setLocations] = useState<LocationMap>(loadLocations)
+  const [workspace, setWorkspace] = useState<WorkspaceFile>(() => loadWorkspace(data))
+  const [workspaceNotice, setWorkspaceNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const workspaceInputRef = useRef<HTMLInputElement>(null)
 
   const identifiable = useMemo(() => data.connections.filter((person) => person.isIdentifiable), [data])
   const cityOptions = useMemo(
-    () => [...new Set(Object.values(locations).map((value) => value.trim()).filter(Boolean))].sort(),
-    [locations],
+    () => [...new Set(Object.values(workspace.people)
+      .map((annotation) => annotation.location?.value.trim() ?? '')
+      .filter(Boolean))].sort(),
+    [workspace],
   )
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase()
     const people = identifiable.filter((person) => {
       const stats = statsFor(data, person.id)
-      const location = locations[person.id]?.trim() ?? ''
-      const matchesQuery = !needle || [person.fullName, person.company, person.position, location]
+      const annotation = workspace.people[person.id]
+      const location = annotation?.location?.value.trim() ?? ''
+      const matchesQuery = !needle || [
+        person.fullName,
+        person.company,
+        person.position,
+        location,
+        annotation?.tags?.value.join(' ') ?? '',
+        annotation?.notes?.value ?? '',
+      ]
         .some((value) => value.toLocaleLowerCase().includes(needle))
       const matchesRole = selectedRoles.size === 0 || person.roles.some((role) => selectedRoles.has(role))
       const matchesConversation = conversation === 'all'
@@ -200,7 +246,7 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
       }
       return (b.connectedOn?.valueOf() ?? 0) - (a.connectedOn?.valueOf() ?? 0)
     })
-  }, [conversation, data, dubaiSignalsOnly, identifiable, locationFilter, locations, query, selectedRoles, sort])
+  }, [conversation, data, dubaiSignalsOnly, identifiable, locationFilter, query, selectedRoles, sort, workspace])
 
   useEffect(() => setVisibleCount(PAGE_SIZE), [query, selectedRoles, conversation, locationFilter, dubaiSignalsOnly, sort])
 
@@ -211,12 +257,42 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
   const activeFilterCount = selectedRoles.size + (conversation === 'all' ? 0 : 1)
     + (locationFilter === 'all' ? 0 : 1) + (dubaiSignalsOnly ? 1 : 0)
 
-  const updateLocation = (id: string, value: string) => {
-    const next = { ...locations }
-    if (value.trim()) next[id] = value.trim()
-    else delete next[id]
-    setLocations(next)
-    localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(next))
+  const persistWorkspace = (next: WorkspaceFile) => {
+    setWorkspace(next)
+    localStorage.setItem(WORKSPACE_STORAGE_KEY, serializeWorkspace(next))
+  }
+
+  const updateAnnotation = (id: string, draft: AnnotationDraft) => {
+    const next = updatePersonAnnotation(workspace, id, draft)
+    persistWorkspace(next)
+    setWorkspaceNotice({ tone: 'success', message: 'Annotation saved locally.' })
+  }
+
+  const importWorkspace = async (file?: File) => {
+    if (!file) return
+    try {
+      const imported = parseWorkspaceFile(await file.text())
+      const next = mergeWorkspaces(workspace, imported, data)
+      persistWorkspace(next)
+      setWorkspaceNotice({
+        tone: 'success',
+        message: `Workspace imported with ${countAnnotations(imported).toLocaleString()} annotated people.`,
+      })
+    } catch (cause) {
+      setWorkspaceNotice({
+        tone: 'error',
+        message: cause instanceof Error ? cause.message : 'The workspace could not be imported.',
+      })
+    } finally {
+      if (workspaceInputRef.current) workspaceInputRef.current.value = ''
+    }
+  }
+
+  const clearWorkspace = () => {
+    if (!window.confirm('Clear all locations, tags, and notes saved in this browser? Export the workspace first if you need a backup.')) return
+    const next = createWorkspace(data)
+    persistWorkspace(next)
+    setWorkspaceNotice({ tone: 'success', message: 'Local annotations cleared.' })
   }
 
   const clearFilters = () => {
@@ -233,9 +309,36 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
         <Brand />
         <div className="header-actions">
           <span className="local-status"><span /> Local session</span>
+          <details className="workspace-menu">
+            <summary>
+              <StickyNote size={16} /> Workspace
+              {countAnnotations(workspace) > 0 && <span>{countAnnotations(workspace)}</span>}
+              <ChevronDown size={13} />
+            </summary>
+            <div className="workspace-menu-panel">
+              <button onClick={() => downloadWorkspace(workspace)}><FileDown size={16} /><span><strong>Export workspace</strong><small>Download annotations as JSON</small></span></button>
+              <button onClick={() => workspaceInputRef.current?.click()}><FileUp size={16} /><span><strong>Import workspace</strong><small>Restore or merge a backup</small></span></button>
+              <button className="danger" onClick={clearWorkspace}><Trash2 size={16} /><span><strong>Clear annotations</strong><small>Remove local locations, tags, and notes</small></span></button>
+            </div>
+          </details>
+          <input
+            ref={workspaceInputRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(event) => void importWorkspace(event.target.files?.[0])}
+          />
           <button className="quiet-button" onClick={onReset}><ArrowLeft size={16} /> Close archive</button>
         </div>
       </header>
+
+      {workspaceNotice && (
+        <div className={`workspace-notice ${workspaceNotice.tone}`}>
+          {workspaceNotice.tone === 'success' ? <Check size={16} /> : <CircleAlert size={16} />}
+          <span>{workspaceNotice.message}</span>
+          <button onClick={() => setWorkspaceNotice(null)} aria-label="Dismiss"><X size={14} /></button>
+        </div>
+      )}
 
       <main className="dashboard">
         <section className="dashboard-heading">
@@ -357,7 +460,7 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
                 <span>Person</span><span>Role</span><span>Relationship</span><span>Connected</span>
               </div>
               {filtered.slice(0, visibleCount).map((person) => (
-                <PersonRow key={person.id} person={person} data={data} location={locations[person.id]} onClick={() => setSelectedId(person.id)} />
+                <PersonRow key={person.id} person={person} data={data} annotation={workspace.people[person.id]} onClick={() => setSelectedId(person.id)} />
               ))}
               {filtered.length === 0 && (
                 <div className="empty-results">
@@ -378,10 +481,11 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
 
       {selected && (
         <PersonDrawer
+          key={selected.id}
           person={selected}
           data={data}
-          location={locations[selected.id] ?? ''}
-          onLocationChange={(value) => updateLocation(selected.id, value)}
+          annotation={workspace.people[selected.id]}
+          onAnnotationChange={(draft) => updateAnnotation(selected.id, draft)}
           onClose={() => setSelectedId(null)}
         />
       )}
@@ -402,8 +506,9 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
   return <section className="filter-section"><h3>{title}</h3>{children}</section>
 }
 
-function PersonRow({ person, data, location, onClick }: { person: Connection; data: ArchiveData; location?: string; onClick: () => void }) {
+function PersonRow({ person, data, annotation, onClick }: { person: Connection; data: ArchiveData; annotation?: PersonAnnotation; onClick: () => void }) {
   const stats = statsFor(data, person.id)
+  const location = annotation?.location?.value
   return (
     <button className="person-row" onClick={onClick}>
       <span className="person-cell">
@@ -414,6 +519,7 @@ function PersonRow({ person, data, location, onClick }: { person: Connection; da
         <strong>{person.position || 'Position unavailable'}</strong>
         <span className="tag-row">
           {person.roles.slice(0, 2).map((role) => <span className="role-tag" key={role}>{role}</span>)}
+          {annotation?.tags?.value.slice(0, 1).map((tag) => <span className="personal-tag" key={`personal-${tag}`}>{tag}</span>)}
           {location && <span className="location-tag"><MapPin size={11} /> {location}</span>}
           {!location && person.dubaiCompanySignal && <span className="hint-tag">Dubai company hint</span>}
         </span>
@@ -428,18 +534,35 @@ function PersonRow({ person, data, location, onClick }: { person: Connection; da
   )
 }
 
-function PersonDrawer({ person, data, location, onLocationChange, onClose }: {
+function PersonDrawer({ person, data, annotation, onAnnotationChange, onClose }: {
   person: Connection
   data: ArchiveData
-  location: string
-  onLocationChange: (value: string) => void
+  annotation?: PersonAnnotation
+  onAnnotationChange: (draft: AnnotationDraft) => void
   onClose: () => void
 }) {
   const stats = statsFor(data, person.id)
   const messages = data.messagesByPerson.get(person.id) ?? []
+  const location = annotation?.location?.value ?? ''
+  const tags = annotation?.tags?.value ?? []
+  const notes = annotation?.notes?.value ?? ''
   const [draftLocation, setDraftLocation] = useState(location)
+  const [draftTags, setDraftTags] = useState(tags.join(', '))
+  const [draftNotes, setDraftNotes] = useState(notes)
   const [messageLimit, setMessageLimit] = useState(8)
   const externalUrl = linkedInUrl(person.profileUrl)
+  const parsedDraftTags = [...new Set(draftTags.split(',').map((tag) => tag.trim()).filter(Boolean))]
+  const annotationDates = [
+    annotation?.location?.updatedAt,
+    annotation?.tags?.updatedAt,
+    annotation?.notes?.updatedAt,
+  ].filter((value): value is string => Boolean(value))
+  const annotationUpdatedAt = annotationDates.length
+    ? new Date(Math.max(...annotationDates.map((value) => Date.parse(value))))
+    : null
+  const annotationChanged = draftLocation.trim() !== location
+    || parsedDraftTags.join('|') !== tags.join('|')
+    || draftNotes.trim() !== notes
 
   useEffect(() => {
     const close = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
@@ -468,12 +591,32 @@ function PersonDrawer({ person, data, location, onLocationChange, onClose }: {
           <span><CalendarDays size={15} /> Connected {formatDate(person.connectedOn, person.connectedOnRaw)}</span>
         </div>
 
-        <section className="location-editor">
-          <div><MapPin size={18} /><span><strong>Location</strong><small>Not included by LinkedIn. Add your own annotation.</small></span></div>
-          <div className="location-input-row">
-            <input value={draftLocation} onChange={(event) => setDraftLocation(event.target.value)} placeholder="e.g. Dubai" />
-            <button onClick={() => onLocationChange(draftLocation)} disabled={draftLocation.trim() === location.trim()}>
-              <Check size={15} /> Save
+        <section className="context-editor">
+          <div className="context-editor-heading">
+            <StickyNote size={18} />
+            <span><strong>Your context</strong><small>Saved locally and included in workspace exports.</small></span>
+          </div>
+          <div className="context-fields">
+            <label>
+              <span><MapPin size={13} /> Location</span>
+              <input value={draftLocation} onChange={(event) => setDraftLocation(event.target.value)} placeholder="e.g. Dubai" />
+            </label>
+            <label>
+              <span><Tags size={13} /> Tags</span>
+              <input value={draftTags} onChange={(event) => setDraftTags(event.target.value)} placeholder="investor, fintech, met at GITEX" />
+            </label>
+            <label>
+              <span>Notes</span>
+              <textarea value={draftNotes} onChange={(event) => setDraftNotes(event.target.value)} placeholder="Private notes about this relationship…" rows={3} />
+            </label>
+          </div>
+          <div className="context-editor-footer">
+            <small>{annotationUpdatedAt ? `Last updated ${formatDate(annotationUpdatedAt)}` : 'No annotation yet'}</small>
+            <button
+              onClick={() => onAnnotationChange({ location: draftLocation, tags: parsedDraftTags, notes: draftNotes })}
+              disabled={!annotationChanged}
+            >
+              <Check size={15} /> Save annotation
             </button>
           </div>
         </section>
@@ -524,6 +667,6 @@ export default function App() {
   return data ? (
     <Dashboard data={data} onReset={() => setData(null)} />
   ) : (
-    <ImportScreen onImport={async (file) => setData(await parseLinkedInArchive(await file.arrayBuffer()))} />
+    <ImportScreen onImport={async (file) => setData(await parseLinkedInArchive(await file.arrayBuffer(), file.name))} />
   )
 }

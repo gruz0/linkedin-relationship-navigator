@@ -34,7 +34,8 @@ describe('LinkedIn archive parser', () => {
   })
 
   it('joins two-way conversations by canonical profile URL', async () => {
-    const data = await parseLinkedInArchive(archiveBuffer())
+    const data = await parseLinkedInArchive(archiveBuffer(), 'test-export.zip')
+    expect(data.sourceFileName).toBe('test-export.zip')
     expect(data.connections).toHaveLength(3)
     expect(data.unavailableConnectionCount).toBe(1)
     expect(data.messageCount).toBe(2)
