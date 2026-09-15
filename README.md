@@ -4,9 +4,11 @@ A private, browser-only explorer for a LinkedIn personal data export.
 
 ## Run locally
 
+Requires [Bun](https://bun.sh/) 1.3.14 or later.
+
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Open the local address printed by Vite, then choose the complete ZIP downloaded from LinkedIn. The archive is parsed in the browser and is never uploaded to a server.
@@ -24,6 +26,6 @@ LinkedIn does not include connection locations in this export. “No messages fo
 ## Verification
 
 ```bash
-npm test
-npm run build
+bun run test
+bun run build
 ```
