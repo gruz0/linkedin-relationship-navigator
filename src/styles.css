@@ -108,6 +108,21 @@ button:focus-visible, summary:focus-visible, select:focus-visible, a:focus-visib
 .preview-card span { display: flex; flex-direction: column; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .preview-card strong { color: var(--ink); font-size: 13px; }
 
+.showcase-section { width: min(var(--landing-max), calc(100% - 56px)); margin: 95px auto 84px; }
+.showcase-section > header { max-width: 690px; margin-bottom: 30px; }
+.showcase-section > header h2 { max-width: 650px; margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(35px, 4vw, 48px); font-weight: 600; letter-spacing: -.04em; line-height: 1.05; }
+.showcase-section > header > p:last-child { max-width: 610px; margin: 15px 0 0; color: var(--muted); font-size: 15px; line-height: 1.65; }
+.showcase-section figure { margin: 0; }
+.showcase-section figure > a { display: block; overflow: hidden; border: 1px solid rgba(29,41,38,.13); border-radius: 18px; background: var(--paper); box-shadow: 0 18px 50px rgba(29,41,38,.11); }
+.showcase-section figure > a:focus-visible { outline-offset: 4px; }
+.showcase-section img { width: 100%; height: auto; display: block; transition: transform .35s ease; }
+.showcase-section figure > a:hover img { transform: scale(1.012); }
+.showcase-section figcaption { display: flex; flex-direction: column; gap: 5px; padding: 15px 3px 0; }
+.showcase-section figcaption strong { color: var(--ink); font-size: 13px; }
+.showcase-section figcaption span { color: var(--muted); font-size: 11px; line-height: 1.55; }
+.showcase-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 36px; }
+.showcase-grid figure > a { border-radius: 15px; box-shadow: 0 10px 32px rgba(29,41,38,.09); }
+
 .creator-footer { width: min(var(--content-max), calc(100% - var(--frame-gutter))); margin: 0 auto; padding: 24px 0; display: flex; align-items: center; justify-content: space-between; gap: 28px; border-top: 1px solid rgba(29,41,38,.11); }
 .import-page .creator-footer { width: min(var(--landing-max), calc(100% - 56px)); }
 .app-shell > .creator-footer { margin-top: -48px; margin-bottom: 28px; }
@@ -359,6 +374,7 @@ button:focus-visible, summary:focus-visible, select:focus-visible, a:focus-visib
   .landing-questions { margin-left: auto; margin-right: auto; text-align: left; }
   .drop-card { min-height: 370px; max-width: 540px; width: 100%; margin: auto; }
   .preview-strip { grid-template-columns: 1fr; max-width: 520px; }
+  .showcase-section { margin-top: 75px; }
   .explorer { grid-template-columns: 1fr; }
   .explorer::before { display: none; }
   .filter-panel { display: none; }
@@ -380,6 +396,10 @@ button:focus-visible, summary:focus-visible, select:focus-visible, a:focus-visib
   .landing-questions li { min-height: 46px; font-size: 12px; }
   .drop-card { min-height: 340px; padding: 35px 24px; }
   .preview-strip { padding-left: 20px; padding-right: 20px; }
+  .showcase-section { width: calc(100% - 36px); margin: 62px auto 65px; }
+  .showcase-section > header { text-align: left; }
+  .showcase-section > header h2 { font-size: 35px; }
+  .showcase-grid { grid-template-columns: 1fr; gap: 32px; }
   .creator-footer, .import-page .creator-footer { width: calc(100% - 36px); align-items: flex-start; flex-direction: column; }
   .app-shell > .creator-footer { width: calc(100% - 28px); margin-top: -42px; }
   .creator-footer nav { width: 100%; }

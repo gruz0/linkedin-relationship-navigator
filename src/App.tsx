@@ -67,6 +67,7 @@ import { createDemoData, createDemoWorkspace } from './demo'
 const PAGE_SIZE = 60
 const CREATOR_LINKEDIN_URL = 'https://www.linkedin.com/in/alexanderkadyrov/'
 const CREATOR_GITHUB_URL = 'https://github.com/gruz0'
+const SHOWCASE_ASSET_PATH = `${import.meta.env.BASE_URL}showcase`
 
 type ConversationFilter = ConversationStatus | 'all' | 'any'
 type LocationFilter = 'all' | 'unknown' | string
@@ -205,6 +206,34 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
         <div className="preview-card"><Users size={21} /><span><strong>People</strong>Role, company, connection date</span></div>
         <div className="preview-card"><MessageCircle size={21} /><span><strong>Conversations</strong>Replies, recency, message history</span></div>
         <div className="preview-card"><MapPin size={21} /><span><strong>Locations</strong>Add the missing context yourself</span></div>
+      </section>
+
+      <section className="showcase-section">
+        <header>
+          <p className="overline">Inside Common Ground</p>
+          <h2>From a data export to answers you can use.</h2>
+          <p>Explore the whole network, narrow it to a useful group, and open the context behind each relationship.</p>
+        </header>
+        <figure className="showcase-primary">
+          <a href={`${SHOWCASE_ASSET_PATH}/workspace-overview.jpg`} target="_blank" rel="noreferrer" aria-label="Open the workspace overview screenshot">
+            <img src={`${SHOWCASE_ASSET_PATH}/workspace-overview.jpg`} width="1440" height="1024" loading="lazy" decoding="async" alt="Common Ground demo workspace with relationship statistics, filters, and fictional connections" />
+          </a>
+          <figcaption><strong>See the whole network</strong><span>Roles, companies, conversation status, dates, and personal context in one workspace.</span></figcaption>
+        </figure>
+        <div className="showcase-grid">
+          <figure>
+            <a href={`${SHOWCASE_ASSET_PATH}/relationship-detail.jpg`} target="_blank" rel="noreferrer" aria-label="Open the relationship detail screenshot">
+              <img src={`${SHOWCASE_ASSET_PATH}/relationship-detail.jpg`} width="1440" height="1024" loading="lazy" decoding="async" alt="Relationship drawer with annotations, metrics, and fictional message history" />
+            </a>
+            <figcaption><strong>Understand the relationship</strong><span>Keep private notes beside conversation history and relationship signals.</span></figcaption>
+          </figure>
+          <figure>
+            <a href={`${SHOWCASE_ASSET_PATH}/privacy-mode.jpg`} target="_blank" rel="noreferrer" aria-label="Open the Privacy mode screenshot">
+              <img src={`${SHOWCASE_ASSET_PATH}/privacy-mode.jpg`} width="1440" height="1024" loading="lazy" decoding="async" alt="Common Ground Privacy mode showing aliases and redacted personal context" />
+            </a>
+            <figcaption><strong>Show it without exposing people</strong><span>Privacy mode replaces identifying details while preserving useful structure.</span></figcaption>
+          </figure>
+        </div>
       </section>
       <CreatorFooter />
     </main>
