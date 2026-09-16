@@ -9,6 +9,7 @@ import {
   Check,
   ChevronDown,
   CircleAlert,
+  Code2,
   ContactRound,
   Download,
   Eye,
@@ -64,6 +65,8 @@ import {
 import { createDemoData, createDemoWorkspace } from './demo'
 
 const PAGE_SIZE = 60
+const CREATOR_LINKEDIN_URL = 'https://www.linkedin.com/in/alexanderkadyrov/'
+const CREATOR_GITHUB_URL = 'https://github.com/gruz0'
 
 type ConversationFilter = ConversationStatus | 'all' | 'any'
 type LocationFilter = 'all' | 'unknown' | string
@@ -201,6 +204,7 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
         <div className="preview-card"><MessageCircle size={21} /><span><strong>Conversations</strong>Replies, recency, message history</span></div>
         <div className="preview-card"><MapPin size={21} /><span><strong>Locations</strong>Add the missing context yourself</span></div>
       </section>
+      <CreatorFooter />
     </main>
   )
 }
@@ -211,6 +215,22 @@ function Brand() {
       <span className="brand-mark"><span /><span /></span>
       <span>Common Ground</span>
     </div>
+  )
+}
+
+function CreatorFooter() {
+  return (
+    <footer className="creator-footer">
+      <div>
+        <span className="creator-kicker">Made thoughtfully in Dubai</span>
+        <strong>Built by <a href={CREATOR_LINKEDIN_URL} target="_blank" rel="noreferrer">Alexander Kadyrov</a></strong>
+        <small>Small, focused tools for messy real-world workflows.</small>
+      </div>
+      <nav aria-label="Creator links">
+        <a href={CREATOR_GITHUB_URL} target="_blank" rel="noreferrer"><Code2 size={16} /> GitHub</a>
+        <a className="creator-cta" href={CREATOR_LINKEDIN_URL} target="_blank" rel="noreferrer"><MessageCircle size={16} /> Discuss a project</a>
+      </nav>
+    </footer>
   )
 }
 
@@ -602,6 +622,8 @@ function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo: boole
           </div>
         </section>
       </main>
+
+      <CreatorFooter />
 
       {selected && (
         <PersonDrawer

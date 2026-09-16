@@ -2,6 +2,8 @@
 
 A private, browser-only explorer for a LinkedIn personal data export.
 
+[Try the live demo](https://gruz0.github.io/linkedin-relationship-navigator/) · [Connect with Alexander Kadyrov](https://www.linkedin.com/in/alexanderkadyrov/)
+
 ## Run locally
 
 Requires [Bun](https://bun.sh/) 1.3.14 or later.
@@ -29,6 +31,10 @@ LinkedIn does not include connection locations in this export. “No messages fo
 Workspace exports contain annotations and basic source-archive metadata. They do not contain LinkedIn message bodies.
 
 Privacy mode is presentation-layer masking intended for screenshots, videos, and demonstrations. Every opened archive starts masked; revealing data applies only to the current session. Privacy mode does not alter the uploaded archive or exported workspace, and it is not a substitute for sanitizing files before sharing them.
+
+## Deployment
+
+Pushes to `master` are tested, built with Bun 1.3.14, and deployed to GitHub Pages by the repository workflow.
 
 ## Verification
 

@@ -11,6 +11,8 @@ describe('fictional demo workspace', () => {
     expect(html).toContain('Choose ZIP archive')
     expect(html).toContain('Explore demo workspace')
     expect(html).toContain('type="file"')
+    expect(html).toContain('https://www.linkedin.com/in/alexanderkadyrov/')
+    expect(html).toContain('https://github.com/gruz0')
   })
 
   it('builds a deterministic and varied relationship dataset', () => {

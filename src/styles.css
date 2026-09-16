@@ -109,6 +109,21 @@ button:focus-visible, summary:focus-visible, select:focus-visible, a:focus-visib
 .preview-card span { display: flex; flex-direction: column; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .preview-card strong { color: var(--ink); font-size: 13px; }
 
+.creator-footer { width: min(var(--content-max), calc(100% - var(--frame-gutter))); margin: 0 auto; padding: 24px 0; display: flex; align-items: center; justify-content: space-between; gap: 28px; border-top: 1px solid rgba(29,41,38,.11); }
+.import-page .creator-footer { width: min(var(--landing-max), calc(100% - 56px)); }
+.app-shell > .creator-footer { margin-top: -48px; margin-bottom: 28px; }
+.creator-footer > div { display: flex; flex-direction: column; gap: 4px; }
+.creator-kicker { color: var(--green-2); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.creator-footer strong { color: var(--ink); font-size: 13px; }
+.creator-footer strong a { text-decoration: none; text-underline-offset: 3px; }
+.creator-footer strong a:hover { text-decoration: underline; }
+.creator-footer small { color: var(--muted); font-size: 11px; }
+.creator-footer nav { display: flex; align-items: center; gap: 8px; }
+.creator-footer nav a { min-height: 38px; display: inline-flex; align-items: center; gap: 7px; padding: 0 11px; border: 1px solid #ccd2cd; border-radius: var(--radius-control); background: rgba(255,255,255,.48); color: #53605b; text-decoration: none; font-size: 11px; font-weight: 650; }
+.creator-footer nav a:hover { border-color: #9dafaa; background: white; color: var(--ink); }
+.creator-footer nav .creator-cta { border-color: var(--green); background: var(--green); color: white; }
+.creator-footer nav .creator-cta:hover { border-color: #103d35; background: #103d35; color: white; }
+
 /* App shell */
 .app-shell { min-height: 100vh; background: var(--canvas); }
 .app-header { height: 72px; padding: 0; background: rgba(251,250,246,.9); backdrop-filter: blur(18px); position: sticky; z-index: 10; top: 0; transition: border-color .2s ease; }
@@ -368,6 +383,10 @@ button:focus-visible, summary:focus-visible, select:focus-visible, a:focus-visib
   .trust-row > div { min-width: 175px; }
   .drop-card { min-height: 340px; padding: 35px 24px; }
   .preview-strip { padding-left: 20px; padding-right: 20px; }
+  .creator-footer, .import-page .creator-footer { width: calc(100% - 36px); align-items: flex-start; flex-direction: column; }
+  .app-shell > .creator-footer { width: calc(100% - 28px); margin-top: -42px; }
+  .creator-footer nav { width: 100%; }
+  .creator-footer nav a { justify-content: center; flex: 1; }
   .local-status { display: none; }
   .demo-status { display: none; }
   .header-identity { gap: 0; }
