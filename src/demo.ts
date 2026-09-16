@@ -135,8 +135,9 @@ function makeMessage(
   step: number,
   direction: MessageRecord['direction'],
   content: string,
+  lastContactDays: number,
 ): MessageRecord {
-  const date = dateBefore(4 + index * 3, step * 5)
+  const date = dateBefore(lastContactDays, step * 5)
   return {
     conversationId: `demo-conversation-${String(index + 1).padStart(3, '0')}`,
     from: direction === 'sent' ? SELF_NAME : person.fullName,
@@ -155,10 +156,16 @@ function messagesFor(person: Connection, index: number): MessageRecord[] {
   const status = index % 4
   if (status === 3) return []
   const copy = messageCopy[index % messageCopy.length]
+  const strongAndQuiet = status === 0 && index < 12
   const directions: MessageRecord['direction'][] =
-    status === 0 ? ['sent', 'received', 'sent', 'received'] : status === 1 ? ['sent', 'sent'] : ['received', 'received']
+    status === 0
+      ? Array.from({ length: strongAndQuiet ? 12 : 4 }, (_, step) => (step % 2 ? 'received' : 'sent'))
+      : status === 1
+        ? ['sent', 'sent']
+        : ['received', 'received']
+  const lastContactDays = strongAndQuiet ? 430 + index : 4 + index * 3
   return directions
-    .map((direction, step) => makeMessage(person, index, step, direction, copy[step]))
+    .map((direction, step) => makeMessage(person, index, step, direction, copy[step % copy.length], lastContactDays))
     .sort((left, right) => (right.date?.valueOf() ?? 0) - (left.date?.valueOf() ?? 0))
 }
 

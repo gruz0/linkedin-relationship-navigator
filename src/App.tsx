@@ -53,6 +53,17 @@ import { createDemoData, createDemoWorkspace } from './demo'
 import { createPrivacyAliases, DEFAULT_PRIVACY_MODE, type PrivacyAliases, personPresentation } from './privacy'
 import { countQuickQuestionMatches, QUICK_QUESTIONS, type QuickQuestion } from './quick-questions'
 import {
+  MESSAGE_DEPTH_FILTER_LABELS,
+  MESSAGE_DEPTH_FILTER_OPTIONS,
+  type MessageDepthFilter,
+  matchesMessageDepthFilter,
+  matchesRecencyFilter,
+  matchesRelationshipFilters,
+  RECENCY_FILTER_LABELS,
+  RECENCY_FILTER_OPTIONS,
+  type RecencyFilter,
+} from './relationship-filters'
+import {
   type AnnotationDraft,
   attachArchive,
   countAnnotations,
@@ -526,6 +537,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   const [query, setQuery] = useState('')
   const [selectedRoles, setSelectedRoles] = useState<Set<RoleFilterCategory>>(new Set())
   const [conversation, setConversation] = useState<ConversationFilter>('all')
+  const [recency, setRecency] = useState<RecencyFilter>('all')
+  const [messageDepth, setMessageDepth] = useState<MessageDepthFilter>('all')
   const [locationFilter, setLocationFilter] = useState<LocationFilter>('all')
   const [dubaiSignalsOnly, setDubaiSignalsOnly] = useState(false)
   const [sort, setSort] = useState<SortMode>('connected')
@@ -538,13 +551,38 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   const [filtersOpen, setFiltersOpen] = useState(false)
   const workspaceInputRef = useRef<HTMLInputElement>(null)
   const explorerRef = useRef<HTMLElement>(null)
+  const referenceDate = useMemo(() => new Date(), [])
 
   const identifiable = useMemo(() => data.connections.filter((person) => person.isIdentifiable), [data])
   const privacyAliases = useMemo(() => createPrivacyAliases(identifiable), [identifiable])
   const conversationCounts = useMemo(() => conversationCountsFor(data), [data])
   const quickQuestionCounts = useMemo(
-    () => new Map(QUICK_QUESTIONS.map((question) => [question.id, countQuickQuestionMatches(data, question)])),
-    [data],
+    () =>
+      new Map(
+        QUICK_QUESTIONS.map((question) => [question.id, countQuickQuestionMatches(data, question, referenceDate)]),
+      ),
+    [data, referenceDate],
+  )
+  const recencyCounts = useMemo(
+    () =>
+      new Map(
+        RECENCY_FILTER_OPTIONS.map((option) => [
+          option.value,
+          identifiable.filter((person) => matchesRecencyFilter(statsFor(data, person.id), option.value, referenceDate))
+            .length,
+        ]),
+      ),
+    [data, identifiable, referenceDate],
+  )
+  const messageDepthCounts = useMemo(
+    () =>
+      new Map(
+        MESSAGE_DEPTH_FILTER_OPTIONS.map((option) => [
+          option.value,
+          identifiable.filter((person) => matchesMessageDepthFilter(statsFor(data, person.id), option.value)).length,
+        ]),
+      ),
+    [data, identifiable],
   )
   const cityOptions = useMemo(
     () =>
@@ -579,6 +617,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
       const matchesRole = matchesRoleFilters(person.roles, selectedRoles)
       const matchesConversation =
         conversation === 'all' || (conversation === 'any' ? stats.status !== 'none' : stats.status === conversation)
+      const matchesRelationship = matchesRelationshipFilters(stats, recency, messageDepth, referenceDate)
       const matchesLocation =
         privacyMode ||
         locationFilter === 'all' ||
@@ -587,6 +626,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
         matchesQuery &&
         matchesRole &&
         matchesConversation &&
+        matchesRelationship &&
         matchesLocation &&
         (privacyMode || !dubaiSignalsOnly || person.dubaiCompanySignal)
       )
@@ -612,9 +652,12 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     dubaiSignalsOnly,
     identifiable,
     locationFilter,
+    messageDepth,
     privacyAliases,
     privacyMode,
     query,
+    recency,
+    referenceDate,
     selectedRoles,
     sort,
     workspace,
@@ -623,7 +666,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   // biome-ignore lint/correctness/useExhaustiveDependencies: Reset pagination when any result-shaping control changes.
   useEffect(
     () => setVisibleCount(PAGE_SIZE),
-    [query, selectedRoles, conversation, locationFilter, dubaiSignalsOnly, sort],
+    [query, selectedRoles, conversation, recency, messageDepth, locationFilter, dubaiSignalsOnly, sort],
   )
 
   const selected = selectedId ? (data.connections.find((person) => person.id === selectedId) ?? null) : null
@@ -633,6 +676,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   const activeFilterCount =
     selectedRoles.size +
     (conversation === 'all' ? 0 : 1) +
+    (recency === 'all' ? 0 : 1) +
+    (messageDepth === 'all' ? 0 : 1) +
     (!privacyMode && locationFilter !== 'all' ? 1 : 0) +
     (!privacyMode && dubaiSignalsOnly ? 1 : 0)
   const activeQuickQuestion = QUICK_QUESTIONS.find(
@@ -641,6 +686,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
       locationFilter === 'all' &&
       !dubaiSignalsOnly &&
       conversation === question.conversation &&
+      recency === question.recency &&
+      messageDepth === question.messageDepth &&
       selectedRoles.size === question.roles.length &&
       question.roles.every((role) => selectedRoles.has(role)),
   )
@@ -709,6 +756,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     setQuery('')
     setSelectedRoles(new Set())
     setConversation('all')
+    setRecency('all')
+    setMessageDepth('all')
     setLocationFilter('all')
     setDubaiSignalsOnly(false)
   }
@@ -727,6 +776,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     setQuery('')
     setSelectedRoles(new Set(question.roles))
     setConversation(question.conversation)
+    setRecency(question.recency)
+    setMessageDepth(question.messageDepth)
     setLocationFilter('all')
     setDubaiSignalsOnly(false)
     setSort(question.sort)
@@ -988,6 +1039,42 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
               </div>
             </FilterSection>
 
+            <FilterSection title="Last contact">
+              <div className="select-wrap">
+                <Clock3 size={15} />
+                <select
+                  aria-label="Last contact"
+                  value={recency}
+                  onChange={(event) => setRecency(event.target.value as RecencyFilter)}
+                >
+                  {RECENCY_FILTER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label} · {recencyCounts.get(option.value)?.toLocaleString() ?? '0'}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} />
+              </div>
+            </FilterSection>
+
+            <FilterSection title="Message depth">
+              <div className="select-wrap">
+                <MessageCircle size={15} />
+                <select
+                  aria-label="Message depth"
+                  value={messageDepth}
+                  onChange={(event) => setMessageDepth(event.target.value as MessageDepthFilter)}
+                >
+                  {MESSAGE_DEPTH_FILTER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label} · {messageDepthCounts.get(option.value)?.toLocaleString() ?? '0'}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} />
+              </div>
+            </FilterSection>
+
             <FilterSection title="Location annotation">
               {privacyMode ? (
                 <div className="privacy-filter-note">
@@ -1078,6 +1165,18 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
                 {conversation !== 'all' && (
                   <button type="button" onClick={() => setConversation('all')}>
                     {conversationFilterLabels[conversation]}
+                    <X size={12} />
+                  </button>
+                )}
+                {recency !== 'all' && (
+                  <button type="button" onClick={() => setRecency('all')}>
+                    {RECENCY_FILTER_LABELS[recency]}
+                    <X size={12} />
+                  </button>
+                )}
+                {messageDepth !== 'all' && (
+                  <button type="button" onClick={() => setMessageDepth('all')}>
+                    {MESSAGE_DEPTH_FILTER_LABELS[messageDepth]}
                     <X size={12} />
                   </button>
                 )}
