@@ -56,6 +56,7 @@ describe('fictional demo workspace', () => {
     expect(statuses).toEqual(new Set(['two-way', 'outbound', 'inbound', 'none']))
     expect(first.messageCount).toBeGreaterThan(50)
     expect(first.messageCount).toBe(second.messageCount)
+    expect(identifiable.filter((person) => person.roles.length === 0).length).toBeGreaterThan(0)
     expect(first.connections.map((person) => person.fullName)).toEqual(
       second.connections.map((person) => person.fullName),
     )
@@ -92,6 +93,8 @@ describe('fictional demo workspace', () => {
     expect(html).toContain('aria-label="Outbound only: 12"')
     expect(html).toContain('aria-label="Inbound only: 12"')
     expect(html).toContain('aria-label="No messages found: 12"')
+    expect(html).toContain('People &amp; Talent')
+    expect(html).toContain('Other')
     expect(html).toContain('Privacy mode masks display and search.')
     expect(html).toContain('Search uses masked aliases and normalized roles only.')
   })

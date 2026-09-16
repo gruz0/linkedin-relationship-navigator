@@ -101,6 +101,7 @@ const positions = [
   'Product Design Director',
   'Growth Marketing Lead',
   'Engineering Manager',
+  'Chief of Staff',
 ]
 
 const messageCopy = [
