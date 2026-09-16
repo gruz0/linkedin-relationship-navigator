@@ -73,9 +73,9 @@ async function captureSocialPreview(page: Page) {
       <body>
         <section class="copy">
           <div class="brand"><span class="mark"></span>Common Ground</div>
-          <h1>Make sense of your LinkedIn network.</h1>
-          <p>A private relationship workspace built from the export you already own.</p>
-          <div class="labels"><span>Browser only</span><span>Fictional demo included</span></div>
+          <h1>You may already know someone who can help.</h1>
+          <p>Find the right person, understand the relationship, and reconnect with context.</p>
+          <div class="labels"><span>Your data stays local</span><span>Fictional demo included</span></div>
         </section>
         <div class="screen"><img src="data:image/jpeg;base64,${overview}" alt="" /></div>
       </body>

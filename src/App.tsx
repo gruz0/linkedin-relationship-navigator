@@ -153,18 +153,17 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
 
       <section className="hero">
         <div className="hero-copy">
-          <h1>Make sense of your LinkedIn network.</h1>
+          <h1>You may already know someone who can help.</h1>
           <p>
-            Common Ground turns the ZIP LinkedIn gives you into a private workspace for finding people,
-            understanding conversation history, and deciding who to reconnect with.
+            Find relevant people in your LinkedIn network, see whether you have actually spoken,
+            and recover the context before reconnecting—all inside your browser.
           </p>
-          <div className="landing-questions">
-            <span>Use it to answer</span>
-            <ul>
-              <li><BriefcaseBusiness size={17} /> Which founders am I connected to?</li>
-              <li><MessageCircle size={17} /> Who have I actually spoken with?</li>
-              <li><ContactRound size={17} /> Which relationships are worth revisiting?</li>
-            </ul>
+          <div className="outcome-path" aria-label="Find the right person, understand the relationship, and decide who to contact">
+            <strong>Find the right person</strong>
+            <span aria-hidden="true">→</span>
+            <strong>Understand the relationship</strong>
+            <span aria-hidden="true">→</span>
+            <strong>Decide who to contact</strong>
           </div>
         </div>
 
@@ -202,15 +201,28 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
         </div>
       </section>
 
-      <section className="preview-strip">
-        <div className="preview-card"><Users size={21} /><span><strong>People</strong>Role, company, connection date</span></div>
-        <div className="preview-card"><MessageCircle size={21} /><span><strong>Conversations</strong>Replies, recency, message history</span></div>
-        <div className="preview-card"><MapPin size={21} /><span><strong>Locations</strong>Add the missing context yourself</span></div>
+      <section className="use-cases" aria-labelledby="use-cases-heading">
+        <header>
+          <h2 id="use-cases-heading">Your network matters most when you have a decision to make.</h2>
+        </header>
+        <div className="use-case-grid">
+          <article>
+            <span className="use-case-icon"><BriefcaseBusiness size={21} /></span>
+            <div><h3>Making a career move</h3><p>Find people at a target company and understand the relationship before asking for advice.</p></div>
+          </article>
+          <article>
+            <span className="use-case-icon"><Users size={21} /></span>
+            <div><h3>Hiring or raising</h3><p>Identify relevant founders, investors, and leaders—and see who you have actually spoken with.</p></div>
+          </article>
+          <article>
+            <span className="use-case-icon"><ContactRound size={21} /></span>
+            <div><h3>Reconnecting with intent</h3><p>Review conversation recency and history before reaching out to a valuable connection.</p></div>
+          </article>
+        </div>
       </section>
 
       <section className="showcase-section">
         <header>
-          <p className="overline">Inside Common Ground</p>
           <h2>From a data export to answers you can use.</h2>
           <p>Explore the whole network, narrow it to a useful group, and open the context behind each relationship.</p>
         </header>
