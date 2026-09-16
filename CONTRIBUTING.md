@@ -42,6 +42,10 @@ bun run build
 
 Add or update tests when behavior changes. Keep dependencies pinned to exact versions and commit `bun.lock` when dependency resolution changes. Biome configuration preserves the project’s single-quote, semicolon-as-needed style; Knip should pass without blanket suppressions.
 
+Pull requests targeting `master` run these quality checks automatically. Merges to `master` update the Release Please pull request. Merging that release pull request creates a version tag and GitHub release, then builds and deploys that exact release to GitHub Pages.
+
+Release Please uses Conventional Commit prefixes to determine the next version: `fix:` creates a patch release, `feat:` creates a minor release, and a `!` or `BREAKING CHANGE:` footer creates a major release. Configure a `RELEASE_PLEASE_TOKEN` repository secret so automated release pull requests trigger the required CI workflow; the workflow falls back to `GITHUB_TOKEN` for repositories that do not require that check.
+
 ## Product and privacy conventions
 
 - Keep archive parsing and personal data in the browser.
@@ -66,6 +70,6 @@ The six Common Ground images in `screenshots` are reviewed captures from the rep
 
 ## Deployment
 
-The workflow in `.github/workflows/deploy-pages.yml` runs for pushes to `master`. It installs dependencies from the frozen lockfile, runs the tests, builds the application with Bun 1.3.14, and deploys `dist` to GitHub Pages.
+The workflow in `.github/workflows/ci.yml` validates pull requests against `master`. The workflow in `.github/workflows/release.yml` maintains the Release Please pull request and deploys GitHub Pages only after that pull request is merged and a release is created. A manual release run can rebuild and redeploy an existing `vMAJOR.MINOR.PATCH` tag.
 
 Pull requests should pass both tests and the production build. A change should not require secrets or a server to use the core application.
