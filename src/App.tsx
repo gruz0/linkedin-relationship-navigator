@@ -63,11 +63,13 @@ import {
   personPresentation,
 } from './privacy'
 import { createDemoData, createDemoWorkspace } from './demo'
+import foundersTwoWayScreenshot from '../screenshots/founders-two-way.png'
+import networkOverviewScreenshot from '../screenshots/network-overview-privacy.png'
+import relationshipDetailScreenshot from '../screenshots/relationship-detail-privacy.png'
 
 const PAGE_SIZE = 60
 const CREATOR_LINKEDIN_URL = 'https://www.linkedin.com/in/alexanderkadyrov/'
 const CREATOR_GITHUB_URL = 'https://github.com/gruz0'
-const SHOWCASE_ASSET_PATH = `${import.meta.env.BASE_URL}showcase`
 
 type ConversationFilter = ConversationStatus | 'all' | 'any'
 type LocationFilter = 'all' | 'unknown' | string
@@ -257,27 +259,27 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
 
       <section className="showcase-section">
         <header>
-          <h2>From a data export to answers you can use.</h2>
-          <p>Explore the whole network, narrow it to a useful group, and open the context behind each relationship.</p>
+          <h2>Tested on a real network, not only demo data.</h2>
+          <p>These screenshots come from the creator’s own 1,660-connection export. Privacy mode keeps every identity, company, raw title, annotation, and message hidden.</p>
         </header>
         <figure className="showcase-primary">
-          <a href={`${SHOWCASE_ASSET_PATH}/workspace-overview.jpg`} target="_blank" rel="noreferrer" aria-label="Open the workspace overview screenshot">
-            <img src={`${SHOWCASE_ASSET_PATH}/workspace-overview.jpg`} width="1440" height="1024" loading="lazy" decoding="async" alt="Common Ground demo workspace with relationship statistics, filters, and fictional connections" />
+          <a href={networkOverviewScreenshot} target="_blank" rel="noreferrer" aria-label="Open the real network overview screenshot">
+            <img src={networkOverviewScreenshot} width="1440" height="1024" loading="lazy" decoding="async" alt="Privacy-masked Common Ground workspace showing statistics from a real 1,660-connection network" />
           </a>
-          <figcaption><strong>See the whole network</strong><span>Roles, companies, conversation status, dates, and personal context in one workspace.</span></figcaption>
+          <figcaption><strong>Audit the whole network</strong><span>1,660 identifiable connections, 8,774 archived messages, and relationship status in one workspace.</span></figcaption>
         </figure>
         <div className="showcase-grid">
           <figure>
-            <a href={`${SHOWCASE_ASSET_PATH}/relationship-detail.jpg`} target="_blank" rel="noreferrer" aria-label="Open the relationship detail screenshot">
-              <img src={`${SHOWCASE_ASSET_PATH}/relationship-detail.jpg`} width="1440" height="1024" loading="lazy" decoding="async" alt="Relationship drawer with annotations, metrics, and fictional message history" />
+            <a href={foundersTwoWayScreenshot} target="_blank" rel="noreferrer" aria-label="Open the filtered founders screenshot">
+              <img src={foundersTwoWayScreenshot} width="1440" height="1024" loading="lazy" decoding="async" alt="Privacy-masked real network filtered to founders with two-way conversations" />
             </a>
-            <figcaption><strong>Understand the relationship</strong><span>Keep private notes beside conversation history and relationship signals.</span></figcaption>
+            <figcaption><strong>Turn a question into a shortlist</strong><span>The real archive contains 140 founders with matched two-way conversation history.</span></figcaption>
           </figure>
           <figure>
-            <a href={`${SHOWCASE_ASSET_PATH}/privacy-mode.jpg`} target="_blank" rel="noreferrer" aria-label="Open the Privacy mode screenshot">
-              <img src={`${SHOWCASE_ASSET_PATH}/privacy-mode.jpg`} width="1440" height="1024" loading="lazy" decoding="async" alt="Common Ground Privacy mode showing aliases and redacted personal context" />
+            <a href={relationshipDetailScreenshot} target="_blank" rel="noreferrer" aria-label="Open the private relationship detail screenshot">
+              <img src={relationshipDetailScreenshot} width="1440" height="1024" loading="lazy" decoding="async" alt="Privacy-masked relationship details showing message counts, direction, threads, and recency" />
             </a>
-            <figcaption><strong>Show it without exposing people</strong><span>Privacy mode replaces identifying details while preserving useful structure.</span></figcaption>
+            <figcaption><strong>Inspect the evidence safely</strong><span>Relationship metrics remain useful while message content and personal context stay hidden.</span></figcaption>
           </figure>
         </div>
       </section>

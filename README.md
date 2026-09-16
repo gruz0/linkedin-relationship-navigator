@@ -4,15 +4,17 @@ A private, browser-only relationship workspace for a LinkedIn personal data expo
 
 [Try the live demo](https://gruz0.github.io/linkedin-relationship-navigator/) · [Connect with Alexander Kadyrov](https://www.linkedin.com/in/alexanderkadyrov/) · [View the source](https://github.com/gruz0/linkedin-relationship-navigator)
 
-![Common Ground showing relationship statistics, filters, and fictional connections](public/showcase/workspace-overview.jpg)
+![Common Ground showing privacy-masked statistics and relationships from a real 1,660-connection network](screenshots/network-overview-privacy.png)
+
+The screenshots in this README come from the creator’s real LinkedIn export with Privacy mode enabled. Aggregate counts and relationship patterns are real; names, companies, raw titles, locations, notes, profile links, and message content are masked.
 
 ## Why it exists
 
 LinkedIn lets people download their professional network as a ZIP full of CSV files, but the export does not readily answer the questions that make the data useful:
 
-- Which founders am I connected to?
-- Who have I actually spoken with?
-- Which relationships might be worth revisiting?
+- Which founders have I actually spoken with?
+- Who did I contact without receiving a reply?
+- Which connections have no matching conversation?
 
 Common Ground turns that export into a searchable workspace without sending it to a server. Visitors without an export can explore the complete product through a clearly labeled fictional demo.
 
@@ -26,25 +28,37 @@ Common Ground turns that export into a searchable workspace without sending it t
 - Mask identifying information with a privacy-first presentation mode
 - Identify company names that mention Dubai without treating them as a person's location
 
-## Inside the workspace
+## Proven on a real network
 
-### Turn a broad network into a useful answer
+### Which founders have I actually spoken with?
 
-Filters can be combined and removed individually. This fictional example finds founders with a two-way conversation history.
+Combining role and conversation filters turns 1,660 connections into a shortlist of 140 founders with matched two-way conversation history.
 
-![Common Ground filtered to fictional founders with two-way conversations](public/showcase/filtered-founders.jpg)
+![Common Ground filtering a real privacy-masked network to founders with two-way conversations](screenshots/founders-two-way.png)
 
-### Keep relationship context beside the conversation
+### Who did I contact without receiving a reply?
 
-The person drawer brings together annotations, relationship metrics, connection dates, and matching exported messages.
+The outbound-only view surfaces relationships where the archive contains sent messages but no matched reply.
 
-![Common Ground relationship details with fictional annotations and messages](public/showcase/relationship-detail.jpg)
+![Common Ground showing outbound-only relationships in a real privacy-masked network](screenshots/outbound-only.png)
 
-### Present the product without exposing real contacts
+### Which connections have no matching conversation?
 
-Uploaded archives start in Privacy mode. Names, companies, raw titles, locations, notes, profile links, and message content remain hidden until deliberately revealed.
+This view distinguishes accumulated LinkedIn connections from relationships with conversation evidence in the export.
 
-![Common Ground Privacy mode with aliases and redacted context](public/showcase/privacy-mode.jpg)
+![Common Ground showing connections without matching conversations in a real privacy-masked network](screenshots/no-messages-found.png)
+
+### What is the evidence behind one relationship?
+
+The person drawer brings together direction, message counts, threads, recency, and connection date while Privacy mode keeps identifying details and content hidden.
+
+![Common Ground showing privacy-masked relationship details from a real network](screenshots/relationship-detail-privacy.png)
+
+### Does the workflow remain usable on mobile?
+
+The full role and conversation filter set is available from a dedicated mobile panel.
+
+![Common Ground mobile filters using privacy-masked real network counts](screenshots/mobile-filters.png)
 
 ## Data and privacy
 

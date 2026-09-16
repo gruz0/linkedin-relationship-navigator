@@ -35,7 +35,7 @@ async function capturePage(page: Page, name: string) {
 }
 
 async function captureSocialPreview(page: Page) {
-  const overview = Buffer.from(await Bun.file(`${outputDirectory}/workspace-overview.jpg`).arrayBuffer()).toString('base64')
+  const overview = Buffer.from(await Bun.file('screenshots/network-overview-privacy.png').arrayBuffer()).toString('base64')
   await page.setViewportSize({ width: 1280, height: 640 })
   await page.setContent(`
     <!doctype html>
@@ -77,7 +77,7 @@ async function captureSocialPreview(page: Page) {
           <p>Analyze connections and conversation history together—locally in your browser.</p>
           <div class="labels"><span>Your data stays local</span><span>Fictional demo included</span></div>
         </section>
-        <div class="screen"><img src="data:image/jpeg;base64,${overview}" alt="" /></div>
+        <div class="screen"><img src="data:image/png;base64,${overview}" alt="" /></div>
       </body>
     </html>
   `, { waitUntil: 'load' })
