@@ -56,8 +56,6 @@ Workspace exports contain annotations and basic source-archive metadata. They do
 
 ## Run locally
 
-Requires [Bun](https://bun.sh/) 1.3.14 or later.
-
 ```bash
 bun install
 bun run dev
@@ -65,25 +63,8 @@ bun run dev
 
 Open the local address printed by Vite, then choose a complete ZIP downloaded from LinkedIn or open the fictional demo workspace.
 
-## Verification
+## Contributing
 
-```bash
-bun run test
-bun run build
-```
-
-## Refresh showcase images
-
-With Google Chrome installed, regenerate every screenshot and the social-preview image from the deterministic fictional demo:
-
-```bash
-bun run capture:showcase
-```
-
-The script starts a local Vite server, drives it with Playwright, and writes the assets to `public/showcase`.
-
-## Deployment
-
-Pushes to `master` are tested, built with Bun 1.3.14, and deployed to GitHub Pages by the repository workflow.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, project scripts, testing, showcase-image generation, and deployment notes.
 
 Common Ground is an independent project and is not affiliated with LinkedIn.
