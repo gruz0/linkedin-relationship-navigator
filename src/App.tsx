@@ -152,16 +152,18 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
 
       <section className="hero">
         <div className="hero-copy">
-          <div className="eyebrow"><Sparkles size={15} /> Your network, made useful</div>
-          <h1>Find the people already in your corner.</h1>
+          <h1>Make sense of your LinkedIn network.</h1>
           <p>
-            Turn your LinkedIn export into a private relationship workspace. Find founders, see who replied,
-            and pick up conversations worth continuing.
+            Common Ground turns the ZIP LinkedIn gives you into a private workspace for finding people,
+            understanding conversation history, and deciding who to reconnect with.
           </p>
-          <div className="trust-row">
-            <div><Check size={16} /><span><strong>Browser only</strong>No uploads</span></div>
-            <div><Check size={16} /><span><strong>Readable answers</strong>Not another spreadsheet</span></div>
-            <div><Check size={16} /><span><strong>Under your control</strong>Clear it anytime</span></div>
+          <div className="landing-questions">
+            <span>Use it to answer</span>
+            <ul>
+              <li><BriefcaseBusiness size={17} /> Which founders am I connected to?</li>
+              <li><MessageCircle size={17} /> Who have I actually spoken with?</li>
+              <li><ContactRound size={17} /> Which relationships are worth revisiting?</li>
+            </ul>
           </div>
         </div>
 

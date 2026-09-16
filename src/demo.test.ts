@@ -10,6 +10,11 @@ describe('fictional demo workspace', () => {
 
     expect(html).toContain('Choose ZIP archive')
     expect(html).toContain('Explore demo workspace')
+    expect(html).toContain('Which founders am I connected to?')
+    expect(html).toContain('Who have I actually spoken with?')
+    expect(html).toContain('Which relationships are worth revisiting?')
+    expect(html).not.toContain('Your network, made useful')
+    expect(html).not.toContain('Browser only')
     expect(html).toContain('type="file"')
     expect(html).toContain('https://www.linkedin.com/in/alexanderkadyrov/')
     expect(html).toContain('https://github.com/gruz0')
