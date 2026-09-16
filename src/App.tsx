@@ -64,6 +64,15 @@ import {
   type RecencyFilter,
 } from './relationship-filters'
 import {
+  buildShortlistRows,
+  type ShortlistColumn,
+  type ShortlistRow,
+  shortlistColumns,
+  shortlistToCopyText,
+  shortlistToCsv,
+  shortlistToMarkdown,
+} from './shortlist'
+import {
   type AnnotationDraft,
   attachArchive,
   countAnnotations,
@@ -126,6 +135,16 @@ function downloadWorkspace(workspace: WorkspaceFile) {
   const link = document.createElement('a')
   link.href = url
   link.download = 'common-ground.workspace.json'
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function downloadTextFile(contents: string, fileName: string, type: string) {
+  const blob = new Blob([contents], { type })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
   link.click()
   URL.revokeObjectURL(url)
 }
@@ -544,6 +563,9 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   const [sort, setSort] = useState<SortMode>('connected')
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [shortlistIds, setShortlistIds] = useState<Set<string>>(new Set())
+  const [exportOpen, setExportOpen] = useState(false)
+  const [exportNotice, setExportNotice] = useState('')
   const [workspace, setWorkspace] = useState<WorkspaceFile>(() =>
     isDemo ? createDemoWorkspace(data) : loadWorkspace(data),
   )
@@ -662,6 +684,24 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     sort,
     workspace,
   ])
+
+  const shortlistedPeople = useMemo(
+    () => identifiable.filter((person) => shortlistIds.has(person.id)),
+    [identifiable, shortlistIds],
+  )
+  const exportColumns = useMemo(() => shortlistColumns(privacyMode), [privacyMode])
+  const exportRows = useMemo(
+    () =>
+      buildShortlistRows({
+        people: shortlistedPeople,
+        data,
+        workspace,
+        privacyAliases,
+        privacyMode,
+      }),
+    [data, privacyAliases, privacyMode, shortlistedPeople, workspace],
+  )
+  const allFilteredSelected = filtered.length > 0 && filtered.every((person) => shortlistIds.has(person.id))
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Reset pagination when any result-shaping control changes.
   useEffect(
@@ -785,8 +825,61 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     showExplorer()
   }
 
+  const setPersonShortlisted = (personId: string, selected: boolean) => {
+    setShortlistIds((current) => {
+      const next = new Set(current)
+      if (selected) next.add(personId)
+      else next.delete(personId)
+      return next
+    })
+  }
+
+  const toggleFilteredShortlist = () => {
+    setShortlistIds((current) => {
+      const next = new Set(current)
+      for (const person of filtered) {
+        if (allFilteredSelected) next.delete(person.id)
+        else next.add(person.id)
+      }
+      return next
+    })
+  }
+
+  const openExport = () => {
+    setExportNotice('')
+    setExportOpen(true)
+  }
+
+  const downloadShortlist = (format: 'csv' | 'markdown') => {
+    if (format === 'csv') {
+      downloadTextFile(
+        shortlistToCsv(exportRows, exportColumns),
+        'common-ground-shortlist.csv',
+        'text/csv;charset=utf-8',
+      )
+    } else {
+      downloadTextFile(
+        shortlistToMarkdown(exportRows, exportColumns),
+        'common-ground-shortlist.md',
+        'text/markdown;charset=utf-8',
+      )
+    }
+    setExportNotice(
+      `${exportRows.length.toLocaleString()} people exported as ${format === 'csv' ? 'CSV' : 'Markdown'}.`,
+    )
+  }
+
+  const copyShortlist = async () => {
+    try {
+      await navigator.clipboard.writeText(shortlistToCopyText(exportRows, privacyMode))
+      setExportNotice(`${exportRows.length.toLocaleString()} people copied to the clipboard.`)
+    } catch {
+      setExportNotice('Clipboard access was unavailable. Download CSV or Markdown instead.')
+    }
+  }
+
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${shortlistIds.size ? 'has-shortlist' : ''}`}>
       <header className={`app-header ${privacyMode ? 'privacy-active' : ''}`}>
         <div className="app-header-frame">
           <div className="header-identity">
@@ -1198,6 +1291,20 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
               </fieldset>
             )}
 
+            {filtered.length > 0 && (
+              <div className="selection-tools">
+                <button type="button" onClick={toggleFilteredShortlist} aria-pressed={allFilteredSelected}>
+                  <span className="selection-box" aria-hidden="true">
+                    {allFilteredSelected && <Check size={12} />}
+                  </span>
+                  {allFilteredSelected
+                    ? `Deselect ${filtered.length.toLocaleString()} results`
+                    : `Select all ${filtered.length.toLocaleString()} results`}
+                </button>
+                {shortlistIds.size > 0 && <span>{shortlistIds.size.toLocaleString()} selected in total</span>}
+              </div>
+            )}
+
             <div className="people-list">
               <div className="people-head">
                 <span>Person</span>
@@ -1213,6 +1320,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
                   annotation={workspace.people[person.id]}
                   privacyMode={privacyMode}
                   privacyAliases={privacyAliases}
+                  shortlisted={shortlistIds.has(person.id)}
+                  onShortlistChange={(selected) => setPersonShortlisted(person.id, selected)}
                   onClick={() => setSelectedId(person.id)}
                 />
               ))}
@@ -1240,6 +1349,32 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
       </main>
 
       <CreatorFooter />
+
+      {shortlistIds.size > 0 && (
+        <aside className="shortlist-bar" aria-label="Shortlist actions">
+          <span>
+            <strong>{shortlistIds.size.toLocaleString()}</strong> selected
+          </span>
+          <button type="button" className="shortlist-review" onClick={openExport}>
+            Review &amp; export
+          </button>
+          <button type="button" className="shortlist-clear" onClick={() => setShortlistIds(new Set())}>
+            Clear
+          </button>
+        </aside>
+      )}
+
+      {exportOpen && (
+        <ShortlistExportDialog
+          rows={exportRows}
+          columns={exportColumns}
+          privacyMode={privacyMode}
+          notice={exportNotice}
+          onCopy={() => void copyShortlist()}
+          onDownload={downloadShortlist}
+          onClose={() => setExportOpen(false)}
+        />
+      )}
 
       {selected && (
         <PersonDrawer
@@ -1291,12 +1426,120 @@ function FilterSection({ title, children }: { title: string; children: React.Rea
   )
 }
 
+function ShortlistExportDialog({
+  rows,
+  columns,
+  privacyMode,
+  notice,
+  onCopy,
+  onDownload,
+  onClose,
+}: {
+  rows: ShortlistRow[]
+  columns: readonly ShortlistColumn[]
+  privacyMode: boolean
+  notice: string
+  onCopy: () => void
+  onDownload: (format: 'csv' | 'markdown') => void
+  onClose: () => void
+}) {
+  return (
+    <div className="export-layer">
+      <button type="button" className="export-backdrop" onClick={onClose} aria-label="Close export preview" />
+      <section className="export-dialog" role="dialog" aria-modal="true" aria-labelledby="export-heading">
+        <header>
+          <div>
+            <p className="overline">Selected shortlist</p>
+            <h2 id="export-heading">Review before exporting</h2>
+            <span>{rows.length.toLocaleString()} people selected</span>
+          </div>
+          <button type="button" className="export-close" onClick={onClose} aria-label="Close export preview">
+            <X size={18} />
+          </button>
+        </header>
+
+        <div className={`export-privacy ${privacyMode ? 'is-private' : 'is-visible'}`}>
+          {privacyMode ? <ShieldCheck size={18} /> : <Eye size={18} />}
+          <div>
+            <strong>{privacyMode ? 'Masked export' : 'Real-data export'}</strong>
+            <span>
+              {privacyMode
+                ? 'Names and companies use stable aliases. Profile URLs, locations, and tags are omitted.'
+                : 'Real names, profile links, exported profile fields, locations, and tags are included.'}
+            </span>
+          </div>
+        </div>
+
+        <div className="export-exclusions">
+          Email addresses, notes, and message content are always excluded from this export.
+        </div>
+
+        <section className="export-columns" aria-labelledby="export-columns-heading">
+          <h3 id="export-columns-heading">Included columns</h3>
+          <div>
+            {columns.map((column) => (
+              <span key={column.key}>{column.label}</span>
+            ))}
+          </div>
+        </section>
+
+        <section className="export-preview" aria-labelledby="export-preview-heading">
+          <div>
+            <h3 id="export-preview-heading">Preview</h3>
+            {rows.length > 3 && <span>First 3 of {rows.length.toLocaleString()} rows</span>}
+          </div>
+          <div className="export-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  {columns.map((column) => (
+                    <th key={column.key}>{column.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.slice(0, 3).map((row) => (
+                  <tr key={`${row.name}-${row.company}-${row.connectedOn}`}>
+                    {columns.map((column) => (
+                      <td key={column.key}>{row[column.key] || '—'}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {notice && (
+          <p className="export-notice" role="status">
+            <Check size={14} /> {notice}
+          </p>
+        )}
+
+        <footer>
+          <button type="button" className="export-copy" onClick={onCopy}>
+            <Check size={15} /> Copy list
+          </button>
+          <button type="button" onClick={() => onDownload('markdown')}>
+            <StickyNote size={15} /> Download Markdown
+          </button>
+          <button type="button" className="export-primary" onClick={() => onDownload('csv')}>
+            <FileDown size={15} /> Download CSV
+          </button>
+        </footer>
+      </section>
+    </div>
+  )
+}
+
 export function PersonRow({
   person,
   data,
   annotation,
   privacyMode,
   privacyAliases,
+  shortlisted = false,
+  onShortlistChange,
   onClick,
 }: {
   person: Connection
@@ -1304,57 +1547,72 @@ export function PersonRow({
   annotation?: PersonAnnotation
   privacyMode: boolean
   privacyAliases: PrivacyAliases
+  shortlisted?: boolean
+  onShortlistChange?: (selected: boolean) => void
   onClick: () => void
 }) {
   const stats = statsFor(data, person.id)
   const location = annotation?.location?.value
   const presentation = personPresentation(person, privacyAliases, privacyMode)
   return (
-    <button type="button" className="person-row" onClick={onClick}>
-      <span className="person-cell">
-        <span className="avatar">{presentation.avatar}</span>
-        <span className="person-name">
-          <strong>{presentation.name}</strong>
-          <small>
-            <Building2 size={13} /> {presentation.company}
-          </small>
+    <div className={`person-row-wrap ${shortlisted ? 'selected' : ''}`}>
+      {onShortlistChange && (
+        <label className="person-select" title={`Add ${presentation.name} to shortlist`}>
+          <input
+            type="checkbox"
+            checked={shortlisted}
+            onChange={(event) => onShortlistChange(event.target.checked)}
+            aria-label={`Select ${presentation.name}`}
+          />
+          <span aria-hidden="true">{shortlisted && <Check size={12} />}</span>
+        </label>
+      )}
+      <button type="button" className="person-row" onClick={onClick}>
+        <span className="person-cell">
+          <span className="avatar">{presentation.avatar}</span>
+          <span className="person-name">
+            <strong>{presentation.name}</strong>
+            <small>
+              <Building2 size={13} /> {presentation.company}
+            </small>
+          </span>
         </span>
-      </span>
-      <span className="role-cell">
-        <strong>{presentation.position}</strong>
-        <span className="tag-row">
-          {person.roles.slice(0, 2).map((role) => (
-            <span className="role-tag" key={role}>
-              {role}
-            </span>
-          ))}
-          {annotation?.tags?.value.length ? (
-            <span className="personal-tag">{privacyMode ? 'Private tag' : annotation.tags.value[0]}</span>
-          ) : null}
-          {location && (
-            <span className="location-tag">
-              <MapPin size={11} /> {privacyMode ? 'Location hidden' : location}
-            </span>
-          )}
-          {!privacyMode && !location && person.dubaiCompanySignal && (
-            <span className="hint-tag">Dubai company hint</span>
-          )}
+        <span className="role-cell">
+          <strong>{presentation.position}</strong>
+          <span className="tag-row">
+            {person.roles.slice(0, 2).map((role) => (
+              <span className="role-tag" key={role}>
+                {role}
+              </span>
+            ))}
+            {annotation?.tags?.value.length ? (
+              <span className="personal-tag">{privacyMode ? 'Private tag' : annotation.tags.value[0]}</span>
+            ) : null}
+            {location && (
+              <span className="location-tag">
+                <MapPin size={11} /> {privacyMode ? 'Location hidden' : location}
+              </span>
+            )}
+            {!privacyMode && !location && person.dubaiCompanySignal && (
+              <span className="hint-tag">Dubai company hint</span>
+            )}
+          </span>
         </span>
-      </span>
-      <span className="relationship-cell">
-        <span className={`status-dot status-${stats.status}`} />
-        <span>
-          <strong>{conversationLabels[stats.status]}</strong>
-          <small>
-            {stats.messageCount
-              ? `${stats.messageCount} messages · ${formatDate(stats.lastMessageAt)}`
-              : 'No URL match in archive'}
-          </small>
+        <span className="relationship-cell">
+          <span className={`status-dot status-${stats.status}`} />
+          <span>
+            <strong>{conversationLabels[stats.status]}</strong>
+            <small>
+              {stats.messageCount
+                ? `${stats.messageCount} messages · ${formatDate(stats.lastMessageAt)}`
+                : 'No URL match in archive'}
+            </small>
+          </span>
         </span>
-      </span>
-      <span className="date-cell">{formatDate(person.connectedOn, person.connectedOnRaw)}</span>
-      <span className="row-arrow">›</span>
-    </button>
+        <span className="date-cell">{formatDate(person.connectedOn, person.connectedOnRaw)}</span>
+        <span className="row-arrow">›</span>
+      </button>
+    </div>
   )
 }
 
