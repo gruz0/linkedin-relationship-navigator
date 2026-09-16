@@ -17,6 +17,9 @@ export const ROLE_CATEGORIES = [
 
 export type RoleCategory = (typeof ROLE_CATEGORIES)[number]
 export type ConversationStatus = 'two-way' | 'outbound' | 'inbound' | 'none'
+export type ConversationCounts = Record<ConversationStatus | 'all' | 'any', number>
+
+export const ARCHIVE_FILES_USED = ['Connections.csv', 'messages.csv', 'Profile.csv'] as const
 
 export interface Connection {
   id: string
@@ -66,6 +69,7 @@ export interface ArchiveData {
   messageCount: number
   conversationCount: number
   archiveFileCount: number
+  archiveFilesUsed: string[]
   selfName: string
   unavailableConnectionCount: number
 }
@@ -185,9 +189,10 @@ export async function parseLinkedInArchive(buffer: ArrayBuffer, sourceFileName =
     throw new Error('This file is not a readable ZIP archive.')
   }
 
-  const connectionRows = parseConnectionsCsv(fileText(files, 'Connections.csv'))
-  const messageRows = parseCsv(fileText(files, 'messages.csv'))
-  const profileRows = parseCsv(fileText(files, 'Profile.csv'))
+  const [connectionsFile, messagesFile, profileFile] = ARCHIVE_FILES_USED
+  const connectionRows = parseConnectionsCsv(fileText(files, connectionsFile))
+  const messageRows = parseCsv(fileText(files, messagesFile))
+  const profileRows = parseCsv(fileText(files, profileFile))
   const profile = profileRows[0] ?? {}
   const selfName = `${profile['First Name'] ?? ''} ${profile['Last Name'] ?? ''}`.trim()
   const normalizedSelfName = normalizeName(selfName)
@@ -285,6 +290,7 @@ export async function parseLinkedInArchive(buffer: ArrayBuffer, sourceFileName =
     messageCount: messageRows.length,
     conversationCount: conversationIds.size,
     archiveFileCount: Object.keys(files).length,
+    archiveFilesUsed: [...ARCHIVE_FILES_USED],
     selfName,
     unavailableConnectionCount: connections.filter((person) => !person.isIdentifiable).length,
   }
@@ -292,4 +298,25 @@ export async function parseLinkedInArchive(buffer: ArrayBuffer, sourceFileName =
 
 export function statsFor(data: ArchiveData, personId: string): ConversationStats {
   return data.statsByPerson.get(personId) ?? { ...EMPTY_STATS }
+}
+
+export function conversationCountsFor(data: ArchiveData): ConversationCounts {
+  const counts: ConversationCounts = {
+    all: 0,
+    any: 0,
+    'two-way': 0,
+    outbound: 0,
+    inbound: 0,
+    none: 0,
+  }
+
+  for (const person of data.connections) {
+    if (!person.isIdentifiable) continue
+    const status = statsFor(data, person.id).status
+    counts.all += 1
+    counts[status] += 1
+    if (status !== 'none') counts.any += 1
+  }
+
+  return counts
 }

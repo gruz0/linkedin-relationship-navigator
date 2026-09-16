@@ -273,6 +273,8 @@ button:focus-visible, summary:focus-visible, select:focus-visible, a:focus-visib
 .custom-radio { width: 15px; height: 15px; border: 1.5px solid #adb4af; border-radius: 50%; position: relative; }
 .radio-list input:checked + .custom-radio { border-color: var(--green); }
 .radio-list input:checked + .custom-radio::after { content: ''; position: absolute; inset: 3px; background: var(--green); border-radius: 50%; }
+.radio-option-label { flex: 1; }
+.radio-option-count { color: #87918c; font-size: 11px; font-variant-numeric: tabular-nums; }
 .select-wrap { height: 37px; position: relative; display: flex; align-items: center; color: var(--muted); }
 .select-wrap > svg:first-child { position: absolute; left: 9px; pointer-events: none; }
 .select-wrap > svg:last-child { position: absolute; right: 8px; pointer-events: none; }

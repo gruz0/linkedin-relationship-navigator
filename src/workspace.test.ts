@@ -18,6 +18,7 @@ function archive(fileName = 'export.zip'): ArchiveData {
     messageCount: 12,
     conversationCount: 3,
     archiveFileCount: 4,
+    archiveFilesUsed: ['Connections.csv', 'messages.csv', 'Profile.csv'],
     selfName: 'Test User',
     unavailableConnectionCount: 0,
   }

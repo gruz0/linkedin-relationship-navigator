@@ -1,10 +1,12 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
-import App from './App'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import App, { Dashboard } from './App'
 import { createDemoData, createDemoWorkspace } from './demo'
 
 describe('fictional demo workspace', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
   it('offers archive upload and demo exploration as separate landing actions', () => {
     const html = renderToStaticMarkup(createElement(App))
 
@@ -65,5 +67,28 @@ describe('fictional demo workspace', () => {
     expect(Object.keys(workspace.people)).toHaveLength(18)
     expect(Object.keys(workspace.people).every((id) => identifiableIds.has(id))).toBe(true)
     expect(Object.values(workspace.people).some((person) => person.location?.value === 'Dubai')).toBe(true)
+  })
+
+  it('explains archive coverage, conversation counts, and privacy search limits', () => {
+    const storage = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    })
+
+    const html = renderToStaticMarkup(
+      createElement(Dashboard, { data: createDemoData(), isDemo: false, onReset: () => undefined }),
+    )
+
+    expect(html).toContain('3 relevant files used · 3 present')
+    expect(html).toContain('aria-label="All connections: 48"')
+    expect(html).toContain('aria-label="Any message: 36"')
+    expect(html).toContain('aria-label="Two-way: 12"')
+    expect(html).toContain('aria-label="Outbound only: 12"')
+    expect(html).toContain('aria-label="Inbound only: 12"')
+    expect(html).toContain('aria-label="No messages found: 12"')
+    expect(html).toContain('Privacy mode masks display and search.')
+    expect(html).toContain('Search uses masked aliases and normalized roles only.')
   })
 })

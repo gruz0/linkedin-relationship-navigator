@@ -51,6 +51,7 @@ const data: ArchiveData = {
   messageCount: 1,
   conversationCount: 1,
   archiveFileCount: 3,
+  archiveFilesUsed: ['Connections.csv', 'messages.csv', 'Profile.csv'],
   selfName: 'Test User',
   unavailableConnectionCount: 0,
 }

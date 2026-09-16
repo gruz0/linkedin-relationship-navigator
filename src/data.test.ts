@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { strToU8, zipSync } from 'fflate'
-import { classifyRole, normalizeProfileUrl, parseLinkedInArchive } from './data'
+import { classifyRole, conversationCountsFor, normalizeProfileUrl, parseLinkedInArchive } from './data'
 
 function archiveBuffer() {
   const files = {
@@ -39,11 +39,21 @@ describe('LinkedIn archive parser', () => {
     expect(data.connections).toHaveLength(3)
     expect(data.unavailableConnectionCount).toBe(1)
     expect(data.messageCount).toBe(2)
+    expect(data.archiveFileCount).toBe(3)
+    expect(data.archiveFilesUsed).toEqual(['Connections.csv', 'messages.csv', 'Profile.csv'])
     expect(data.statsByPerson.get('linkedin.com/in/ada')).toMatchObject({
       status: 'two-way',
       sentCount: 1,
       receivedCount: 1,
     })
     expect(data.statsByPerson.get('linkedin.com/in/grace')?.status).toBe('none')
+    expect(conversationCountsFor(data)).toEqual({
+      all: 2,
+      any: 1,
+      'two-way': 1,
+      outbound: 0,
+      inbound: 0,
+      none: 1,
+    })
   })
 })

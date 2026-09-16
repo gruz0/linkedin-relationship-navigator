@@ -1,4 +1,5 @@
 import {
+  ARCHIVE_FILES_USED,
   type ArchiveData,
   type Connection,
   type ConversationStats,
@@ -194,6 +195,7 @@ export function createDemoData(): ArchiveData {
     messageCount,
     conversationCount: conversationIds.size,
     archiveFileCount: 3,
+    archiveFilesUsed: [...ARCHIVE_FILES_USED],
     selfName: SELF_NAME,
     unavailableConnectionCount: connections.filter((person) => !person.isIdentifiable).length,
   }

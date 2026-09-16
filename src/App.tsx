@@ -39,6 +39,7 @@ import {
   type Connection,
   type ConversationStatus,
   type RoleCategory,
+  conversationCountsFor,
   parseLinkedInArchive,
   statsFor,
 } from './data'
@@ -373,7 +374,7 @@ function CreatorFooter() {
   )
 }
 
-function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo: boolean; onReset: () => void }) {
+export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo: boolean; onReset: () => void }) {
   const [privacyMode, setPrivacyMode] = useState(isDemo ? false : DEFAULT_PRIVACY_MODE)
   const [query, setQuery] = useState('')
   const [selectedRoles, setSelectedRoles] = useState<Set<RoleCategory>>(new Set())
@@ -390,6 +391,7 @@ function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo: boole
 
   const identifiable = useMemo(() => data.connections.filter((person) => person.isIdentifiable), [data])
   const privacyAliases = useMemo(() => createPrivacyAliases(identifiable), [identifiable])
+  const conversationCounts = useMemo(() => conversationCountsFor(data), [data])
   const cityOptions = useMemo(
     () => [...new Set(Object.values(workspace.people)
       .map((annotation) => annotation.location?.value.trim() ?? '')
@@ -577,7 +579,9 @@ function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo: boole
           </div>
           <div className={`archive-chip ${isDemo ? 'is-demo' : ''}`}>
             {isDemo ? <Sparkles size={17} /> : <ContactRound size={17} />}
-            {isDemo ? 'Curated demo workspace' : `${data.archiveFileCount} export files read`}
+            {isDemo
+              ? 'Curated demo workspace'
+              : `${data.archiveFilesUsed.length} relevant files used · ${data.archiveFileCount} present`}
           </div>
         </section>
 
@@ -592,10 +596,10 @@ function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo: boole
           <div className="notice-icon"><MapPin size={20} /></div>
           <div>
             <strong>{privacyMode
-              ? 'Locations and annotations are hidden.'
+              ? 'Privacy mode masks display and search.'
               : isDemo ? 'Demo locations are manual annotations.' : 'LinkedIn did not include connection locations.'}</strong>
             <span>{privacyMode
-              ? 'Turn off Privacy mode to view or edit personal context. Source files and workspace data are unchanged.'
+              ? 'Search uses masked aliases and normalized roles only. Turn off Privacy mode to search real names, companies, locations, tags, or notes. Source files and workspace data are unchanged.'
               : isDemo
                 ? 'They illustrate context you can add yourself; LinkedIn does not supply locations for connections in this export.'
                 : 'Add a city when reviewing a person. Company-name hints are available separately and are never treated as locations.'}</span>
@@ -641,9 +645,11 @@ function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo: boole
             <FilterSection title="Conversation">
               <div className="radio-list">
                 {conversationFilterOptions.map(([value, label]) => (
-                  <label key={value}>
+                  <label key={value} aria-label={`${label}: ${conversationCounts[value].toLocaleString()}`}>
                     <input type="radio" checked={conversation === value} onChange={() => setConversation(value)} />
-                    <span className="custom-radio" /> {label}
+                    <span className="custom-radio" />
+                    <span className="radio-option-label">{label}</span>
+                    <span className="radio-option-count">{conversationCounts[value].toLocaleString()}</span>
                   </label>
                 ))}
               </div>
