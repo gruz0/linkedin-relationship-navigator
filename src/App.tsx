@@ -61,6 +61,7 @@ import {
   createPrivacyAliases,
   personPresentation,
 } from './privacy'
+import { createDemoData, createDemoWorkspace } from './demo'
 
 const PAGE_SIZE = 60
 
@@ -119,7 +120,7 @@ function linkedInUrl(profileUrl: string) {
   return /^linkedin\.com\/in\/[a-z0-9_%.-]+$/i.test(profileUrl) ? `https://www.${profileUrl}` : ''
 }
 
-function ImportScreen({ onImport }: { onImport: (file: File) => Promise<void> }) {
+function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<void>; onDemo: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -187,6 +188,10 @@ function ImportScreen({ onImport }: { onImport: (file: File) => Promise<void> })
             onChange={(event) => void load(event.target.files?.[0])}
           />
           <span className="drop-hint">or drop it here · nothing leaves this browser</span>
+          <div className="import-choice"><span>or</span></div>
+          <button className="demo-button" onClick={onDemo} disabled={loading}>
+            <Sparkles size={17} /> Explore demo workspace
+          </button>
           {error && <div className="import-error"><CircleAlert size={16} /> {error}</div>}
         </div>
       </section>
@@ -209,8 +214,8 @@ function Brand() {
   )
 }
 
-function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }) {
-  const [privacyMode, setPrivacyMode] = useState(DEFAULT_PRIVACY_MODE)
+function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo: boolean; onReset: () => void }) {
+  const [privacyMode, setPrivacyMode] = useState(isDemo ? false : DEFAULT_PRIVACY_MODE)
   const [query, setQuery] = useState('')
   const [selectedRoles, setSelectedRoles] = useState<Set<RoleCategory>>(new Set())
   const [conversation, setConversation] = useState<ConversationFilter>('all')
@@ -219,7 +224,7 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
   const [sort, setSort] = useState<SortMode>('connected')
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [workspace, setWorkspace] = useState<WorkspaceFile>(() => loadWorkspace(data))
+  const [workspace, setWorkspace] = useState<WorkspaceFile>(() => isDemo ? createDemoWorkspace(data) : loadWorkspace(data))
   const [workspaceNotice, setWorkspaceNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const workspaceInputRef = useRef<HTMLInputElement>(null)
@@ -298,13 +303,13 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
 
   const persistWorkspace = (next: WorkspaceFile) => {
     setWorkspace(next)
-    localStorage.setItem(WORKSPACE_STORAGE_KEY, serializeWorkspace(next))
+    if (!isDemo) localStorage.setItem(WORKSPACE_STORAGE_KEY, serializeWorkspace(next))
   }
 
   const updateAnnotation = (id: string, draft: AnnotationDraft) => {
     const next = updatePersonAnnotation(workspace, id, draft)
     persistWorkspace(next)
-    setWorkspaceNotice({ tone: 'success', message: 'Annotation saved locally.' })
+    setWorkspaceNotice({ tone: 'success', message: isDemo ? 'Annotation saved for this demo session.' : 'Annotation saved locally.' })
   }
 
   const importWorkspace = async (file?: File) => {
@@ -328,10 +333,13 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
   }
 
   const clearWorkspace = () => {
-    if (!window.confirm('Clear all locations, tags, and notes saved in this browser? Export the workspace first if you need a backup.')) return
+    const warning = isDemo
+      ? 'Clear all locations, tags, and notes from this demo session?'
+      : 'Clear all locations, tags, and notes saved in this browser? Export the workspace first if you need a backup.'
+    if (!window.confirm(warning)) return
     const next = createWorkspace(data)
     persistWorkspace(next)
-    setWorkspaceNotice({ tone: 'success', message: 'Local annotations cleared.' })
+    setWorkspaceNotice({ tone: 'success', message: isDemo ? 'Demo annotations cleared for this session.' : 'Local annotations cleared.' })
   }
 
   const clearFilters = () => {
@@ -349,6 +357,7 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
           <div className="header-identity">
             <Brand />
             <span className="local-status"><span /> Local session</span>
+            {isDemo && <span className="demo-status"><Sparkles size={13} /> Demo data</span>}
           </div>
           <div className="header-actions">
             <button
@@ -378,7 +387,7 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
               hidden
               onChange={(event) => void importWorkspace(event.target.files?.[0])}
             />
-            <button className="quiet-button close-archive" onClick={onReset}><ArrowLeft size={16} /> Close archive</button>
+            <button className="quiet-button close-archive" onClick={onReset}><ArrowLeft size={16} /> {isDemo ? 'Close demo' : 'Close archive'}</button>
           </div>
         </div>
       </header>
@@ -394,15 +403,23 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
       {privacyMode && (
         <div className="privacy-watermark"><ShieldCheck size={15} /> Privacy mode · display data is masked</div>
       )}
+      {isDemo && (
+        <div className="demo-watermark"><Sparkles size={14} /> Fictional demo data</div>
+      )}
 
       <main className="dashboard">
         <section className="dashboard-heading">
           <div>
             <p className="overline">Relationship workspace</p>
             <h1>Your network at a glance</h1>
-            <p>{identifiable.length.toLocaleString()} identifiable connections, current through this export.</p>
+            <p>{isDemo
+              ? `${identifiable.length.toLocaleString()} fictional connections created to explore every feature safely.`
+              : `${identifiable.length.toLocaleString()} identifiable connections, current through this export.`}</p>
           </div>
-          <div className="archive-chip"><ContactRound size={17} /> {data.archiveFileCount} export files read</div>
+          <div className={`archive-chip ${isDemo ? 'is-demo' : ''}`}>
+            {isDemo ? <Sparkles size={17} /> : <ContactRound size={17} />}
+            {isDemo ? 'Curated demo workspace' : `${data.archiveFileCount} export files read`}
+          </div>
         </section>
 
         <section className="stats-grid">
@@ -415,10 +432,14 @@ function Dashboard({ data, onReset }: { data: ArchiveData; onReset: () => void }
         <section className="location-notice">
           <div className="notice-icon"><MapPin size={20} /></div>
           <div>
-            <strong>{privacyMode ? 'Locations and annotations are hidden.' : 'LinkedIn did not include connection locations.'}</strong>
+            <strong>{privacyMode
+              ? 'Locations and annotations are hidden.'
+              : isDemo ? 'Demo locations are manual annotations.' : 'LinkedIn did not include connection locations.'}</strong>
             <span>{privacyMode
               ? 'Turn off Privacy mode to view or edit personal context. Source files and workspace data are unchanged.'
-              : 'Add a city when reviewing a person. Company-name hints are available separately and are never treated as locations.'}</span>
+              : isDemo
+                ? 'They illustrate context you can add yourself; LinkedIn does not supply locations for connections in this export.'
+                : 'Add a city when reviewing a person. Company-name hints are available separately and are never treated as locations.'}</span>
           </div>
           {!privacyMode && (
             <button onClick={() => setDubaiSignalsOnly((current) => !current)} className={dubaiSignalsOnly ? 'is-active' : ''}>
@@ -784,11 +805,17 @@ export function PersonDrawer({ person, data, annotation, privacyMode, privacyAli
 }
 
 export default function App() {
-  const [data, setData] = useState<ArchiveData | null>(null)
+  const [session, setSession] = useState<{ data: ArchiveData; isDemo: boolean } | null>(null)
 
-  return data ? (
-    <Dashboard data={data} onReset={() => setData(null)} />
+  return session ? (
+    <Dashboard data={session.data} isDemo={session.isDemo} onReset={() => setSession(null)} />
   ) : (
-    <ImportScreen onImport={async (file) => setData(await parseLinkedInArchive(await file.arrayBuffer(), file.name))} />
+    <ImportScreen
+      onImport={async (file) => setSession({
+        data: await parseLinkedInArchive(await file.arrayBuffer(), file.name),
+        isDemo: false,
+      })}
+      onDemo={() => setSession({ data: createDemoData(), isDemo: true })}
+    />
   )
 }

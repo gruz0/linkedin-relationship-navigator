@@ -15,6 +15,7 @@ Open the local address printed by Vite, then choose the complete ZIP downloaded 
 
 ## What it supports
 
+- Explore the complete product instantly with a clearly labeled fictional demo workspace
 - Search and filter connections by name, company, title, and normalized role
 - Filter conversation relationships as two-way, outbound-only, inbound-only, or no message found
 - View per-person message counts, recency, and message history
