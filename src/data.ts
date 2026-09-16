@@ -1,14 +1,14 @@
 import { strFromU8, unzipSync } from 'fflate'
 import Papa from 'papaparse'
 
-export const ROLE_CATEGORIES = [
+const ROLE_CATEGORIES = [
   'Founder',
   'CEO',
   'C-suite',
   'Investor',
   'Director',
   'VP',
-  'Recruiting',
+  'People & Talent',
   'Engineering',
   'Product',
   'Sales & BD',
@@ -16,6 +16,8 @@ export const ROLE_CATEGORIES = [
 ] as const
 
 export type RoleCategory = (typeof ROLE_CATEGORIES)[number]
+export const ROLE_FILTER_CATEGORIES = [...ROLE_CATEGORIES, 'Other'] as const
+export type RoleFilterCategory = (typeof ROLE_FILTER_CATEGORIES)[number]
 export type ConversationStatus = 'two-way' | 'outbound' | 'inbound' | 'none'
 export type ConversationCounts = Record<ConversationStatus | 'all' | 'any', number>
 
@@ -158,18 +160,36 @@ export function classifyRole(title: string): RoleCategory[] {
   const rules: Array<[RoleCategory, RegExp]> = [
     ['Founder', /\b(?:co[- ]?)?founder\b/i],
     ['CEO', /\b(?:ceo|chief executive officer)\b/i],
-    ['C-suite', /\b(?:ceo|cto|cfo|coo|cmo|cio|cpo|cro|chief\s+[a-z& -]+\s+officer)\b/i],
+    [
+      'C-suite',
+      /\b(?:ceo|cto|cfo|coo|cmo|cio|cpo|cro|chro|cbo|cbdo|cco|cdo|cdao|ciso|clo|cso|cxo|caio|chief\s+[a-z& -]+\s+officer)\b/i,
+    ],
     ['Investor', /\b(?:investor|venture partner|general partner|investment partner|angel)\b/i],
     ['Director', /\b(?:director|managing director)\b/i],
-    ['VP', /\b(?:vp|vice president)\b/i],
-    ['Recruiting', /\b(?:recruiter|recruitment|talent acquisition|headhunter|people partner)\b/i],
-    ['Engineering', /\b(?:engineer|engineering|developer|software architect|technical lead|tech lead)\b/i],
-    ['Product', /\b(?:product manager|product lead|head of product|product owner|product director)\b/i],
+    ['VP', /\b(?:vp|svp|evp|avp|vice[- ]president)\b/i],
+    [
+      'People & Talent',
+      /\b(?:recruiter|recruitment|talent|headhunter|people partner|people operations?|people ops|human resources?|hr|hrbp|chro|staffing|sourcer|sourcing|employer branding|hiring)\b/i,
+    ],
+    [
+      'Engineering',
+      /\b(?:engineer|engineering|developer|software architect|technical lead|tech lead|cto|cio|chief technology officer|chief information officer|chief information and technology officer)\b/i,
+    ],
+    [
+      'Product',
+      /\b(?:product manager|product lead|head of product|product owner|product director|cpo|chief product officer)\b/i,
+    ],
     ['Sales & BD', /\b(?:sales|business development|account executive|commercial)\b/i],
-    ['Marketing', /\b(?:marketing|growth|brand|communications|content lead)\b/i],
+    ['Marketing', /\b(?:marketing|growth|brand|communications|content lead|cmo)\b/i],
   ]
   for (const [role, pattern] of rules) if (pattern.test(title)) roles.push(role)
   return roles
+}
+
+export function matchesRoleFilters(roles: readonly RoleCategory[], selected: ReadonlySet<RoleFilterCategory>): boolean {
+  if (selected.size === 0) return true
+  if (roles.length === 0 && selected.has('Other')) return true
+  return roles.some((role) => selected.has(role))
 }
 
 function fileText(files: Record<string, Uint8Array>, fileName: string): string {

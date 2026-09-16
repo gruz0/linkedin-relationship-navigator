@@ -43,9 +43,10 @@ import {
   type Connection,
   type ConversationStatus,
   conversationCountsFor,
+  matchesRoleFilters,
   parseLinkedInArchive,
-  ROLE_CATEGORIES,
-  type RoleCategory,
+  ROLE_FILTER_CATEGORIES,
+  type RoleFilterCategory,
   statsFor,
 } from './data'
 import { createDemoData, createDemoWorkspace } from './demo'
@@ -522,7 +523,7 @@ function CreatorFooter() {
 export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo: boolean; onReset: () => void }) {
   const [privacyMode, setPrivacyMode] = useState(isDemo ? false : DEFAULT_PRIVACY_MODE)
   const [query, setQuery] = useState('')
-  const [selectedRoles, setSelectedRoles] = useState<Set<RoleCategory>>(new Set())
+  const [selectedRoles, setSelectedRoles] = useState<Set<RoleFilterCategory>>(new Set())
   const [conversation, setConversation] = useState<ConversationFilter>('all')
   const [locationFilter, setLocationFilter] = useState<LocationFilter>('all')
   const [dubaiSignalsOnly, setDubaiSignalsOnly] = useState(false)
@@ -569,7 +570,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
             annotation?.notes?.value ?? '',
           ]
       const matchesQuery = !needle || searchValues.some((value) => value.toLocaleLowerCase().includes(needle))
-      const matchesRole = selectedRoles.size === 0 || person.roles.some((role) => selectedRoles.has(role))
+      const matchesRole = matchesRoleFilters(person.roles, selectedRoles)
       const matchesConversation =
         conversation === 'all' || (conversation === 'any' ? stats.status !== 'none' : stats.status === conversation)
       const matchesLocation =
@@ -880,9 +881,11 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
             </div>
             <FilterSection title="Roles">
               <div className="role-filter-list">
-                {ROLE_CATEGORIES.map((role) => {
+                {ROLE_FILTER_CATEGORIES.map((role) => {
                   const active = selectedRoles.has(role)
-                  const count = identifiable.filter((person) => person.roles.includes(role)).length
+                  const count = identifiable.filter((person) =>
+                    role === 'Other' ? person.roles.length === 0 : person.roles.includes(role),
+                  ).length
                   return (
                     <button
                       type="button"
