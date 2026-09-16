@@ -24,16 +24,23 @@ function stableHash(value: string) {
 }
 
 function aliasMap(values: string[], prefix: string) {
-  const unique = [...new Set(values.filter(Boolean))]
-    .sort((left, right) => stableHash(left) - stableHash(right) || left.localeCompare(right))
+  const unique = [...new Set(values.filter(Boolean))].sort(
+    (left, right) => stableHash(left) - stableHash(right) || left.localeCompare(right),
+  )
   const width = Math.max(3, String(unique.length).length)
   return new Map(unique.map((value, index) => [value, `${prefix} ${String(index + 1).padStart(width, '0')}`]))
 }
 
 export function createPrivacyAliases(connections: Connection[]): PrivacyAliases {
   return {
-    people: aliasMap(connections.map((person) => person.id), 'Person'),
-    companies: aliasMap(connections.map((person) => person.company), 'Company'),
+    people: aliasMap(
+      connections.map((person) => person.id),
+      'Person',
+    ),
+    companies: aliasMap(
+      connections.map((person) => person.company),
+      'Company',
+    ),
   }
 }
 
@@ -52,7 +59,7 @@ export function personPresentation(
   }
 
   const name = aliases.people.get(person.id) ?? 'Person hidden'
-  const company = person.company ? aliases.companies.get(person.company) ?? 'Company hidden' : 'Company unavailable'
+  const company = person.company ? (aliases.companies.get(person.company) ?? 'Company hidden') : 'Company unavailable'
   return {
     name,
     company,

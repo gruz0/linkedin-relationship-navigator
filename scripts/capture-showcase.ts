@@ -1,4 +1,4 @@
-import { chromium, type Page } from 'playwright-core'
+import { type Browser, chromium, type Page } from 'playwright-core'
 
 const address = 'http://127.0.0.1:4173/'
 const outputDirectory = 'public/showcase'
@@ -73,7 +73,8 @@ async function openDemo(page: Page) {
   await page.getByRole('button', { name: 'Explore demo workspace' }).click()
   await page.locator('.people-list').waitFor()
   await page.addStyleTag({
-    content: '*, *::before, *::after { animation: none !important; transition: none !important; caret-color: transparent !important; }',
+    content:
+      '*, *::before, *::after { animation: none !important; transition: none !important; caret-color: transparent !important; }',
   })
 }
 
@@ -87,9 +88,12 @@ async function capturePage(page: Page, name: string) {
 }
 
 async function captureSocialPreview(page: Page, format: SocialPreviewFormat) {
-  const overview = Buffer.from(await Bun.file('screenshots/network-overview-privacy.png').arrayBuffer()).toString('base64')
+  const overview = Buffer.from(await Bun.file('screenshots/network-overview-privacy.png').arrayBuffer()).toString(
+    'base64',
+  )
   await page.setViewportSize({ width: format.width, height: format.height })
-  await page.setContent(`
+  await page.setContent(
+    `
     <!doctype html>
     <html>
       <head>
@@ -132,7 +136,9 @@ async function captureSocialPreview(page: Page, format: SocialPreviewFormat) {
         <div class="screen"><img src="data:image/png;base64,${overview}" alt="" /></div>
       </body>
     </html>
-  `, { waitUntil: 'load' })
+  `,
+    { waitUntil: 'load' },
+  )
   await page.locator('.screen img').evaluate((image: HTMLImageElement) => image.decode())
   await page.screenshot({
     path: `${outputDirectory}/${format.fileName}`,
@@ -143,12 +149,12 @@ async function captureSocialPreview(page: Page, format: SocialPreviewFormat) {
 
 await Bun.$`mkdir -p ${outputDirectory}`
 
-const server = Bun.spawn(
-  ['bun', 'run', 'dev', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'],
-  { stdout: 'ignore', stderr: 'ignore' },
-)
+const server = Bun.spawn(['bun', 'run', 'dev', '--', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], {
+  stdout: 'ignore',
+  stderr: 'ignore',
+})
 
-let browser
+let browser: Browser | undefined
 try {
   await waitForServer()
   browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--no-sandbox'] })

@@ -56,13 +56,17 @@ describe('fictional demo workspace', () => {
     expect(statuses).toEqual(new Set(['two-way', 'outbound', 'inbound', 'none']))
     expect(first.messageCount).toBeGreaterThan(50)
     expect(first.messageCount).toBe(second.messageCount)
-    expect(first.connections.map((person) => person.fullName)).toEqual(second.connections.map((person) => person.fullName))
+    expect(first.connections.map((person) => person.fullName)).toEqual(
+      second.connections.map((person) => person.fullName),
+    )
   })
 
   it('provides annotations only for identifiable demo people', () => {
     const data = createDemoData()
     const workspace = createDemoWorkspace(data)
-    const identifiableIds = new Set(data.connections.filter((person) => person.isIdentifiable).map((person) => person.id))
+    const identifiableIds = new Set(
+      data.connections.filter((person) => person.isIdentifiable).map((person) => person.id),
+    )
 
     expect(Object.keys(workspace.people)).toHaveLength(18)
     expect(Object.keys(workspace.people).every((id) => identifiableIds.has(id))).toBe(true)

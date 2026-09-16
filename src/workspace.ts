@@ -1,13 +1,13 @@
 import { type ArchiveData, normalizeProfileUrl } from './data'
 
-export const WORKSPACE_FORMAT = 'common-ground-workspace'
-export const WORKSPACE_SCHEMA_VERSION = 1
+const WORKSPACE_FORMAT = 'common-ground-workspace'
+const WORKSPACE_SCHEMA_VERSION = 1
 export const WORKSPACE_STORAGE_KEY = 'common-ground.workspace.v1'
 export const LEGACY_LOCATION_STORAGE_KEY = 'common-ground.locations.v1'
 
-export type AnnotationSource = 'manual' | 'enrichment-csv'
+type AnnotationSource = 'manual' | 'enrichment-csv'
 
-export interface AnnotatedValue<T> {
+interface AnnotatedValue<T> {
   value: T
   source: AnnotationSource
   updatedAt: string
@@ -19,7 +19,7 @@ export interface PersonAnnotation {
   notes?: AnnotatedValue<string>
 }
 
-export interface SourceArchiveMetadata {
+interface SourceArchiveMetadata {
   fileName: string
   importedAt: string
   connectionCount: number
@@ -147,15 +147,17 @@ function parsePersonAnnotation(value: unknown): PersonAnnotation {
 }
 
 function parseArchive(value: unknown): SourceArchiveMetadata {
-  if (!isRecord(value)
-    || typeof value.fileName !== 'string'
-    || !validIso(value.importedAt)
-    || !Number.isInteger(value.connectionCount)
-    || !Number.isInteger(value.messageCount)
-    || !Number.isInteger(value.conversationCount)
-    || (value.connectionCount as number) < 0
-    || (value.messageCount as number) < 0
-    || (value.conversationCount as number) < 0) {
+  if (
+    !isRecord(value) ||
+    typeof value.fileName !== 'string' ||
+    !validIso(value.importedAt) ||
+    !Number.isInteger(value.connectionCount) ||
+    !Number.isInteger(value.messageCount) ||
+    !Number.isInteger(value.conversationCount) ||
+    (value.connectionCount as number) < 0 ||
+    (value.messageCount as number) < 0 ||
+    (value.conversationCount as number) < 0
+  ) {
     throw new Error('Workspace archive metadata is invalid.')
   }
   return {

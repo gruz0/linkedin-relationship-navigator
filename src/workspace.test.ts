@@ -30,11 +30,16 @@ const secondDate = new Date('2026-09-02T10:00:00.000Z')
 describe('portable workspace', () => {
   it('round-trips annotations without including archive messages', () => {
     const empty = createWorkspace(archive(), firstDate)
-    const annotated = updatePersonAnnotation(empty, 'https://www.linkedin.com/in/Ada/?trk=export', {
-      location: 'Dubai',
-      tags: ['Founder', 'fintech', 'Founder'],
-      notes: 'Met at a conference.',
-    }, secondDate)
+    const annotated = updatePersonAnnotation(
+      empty,
+      'https://www.linkedin.com/in/Ada/?trk=export',
+      {
+        location: 'Dubai',
+        tags: ['Founder', 'fintech', 'Founder'],
+        notes: 'Met at a conference.',
+      },
+      secondDate,
+    )
 
     const text = serializeWorkspace(annotated)
     const restored = parseWorkspaceFile(text)
@@ -50,10 +55,14 @@ describe('portable workspace', () => {
 
   it('migrates legacy locations and normalizes their profile URLs', () => {
     const workspace = createWorkspace(archive(), firstDate)
-    const migrated = migrateLegacyLocations(workspace, JSON.stringify({
-      'https://www.linkedin.com/in/Ada/?trk=old': ' Dubai ',
-      'not-a-profile': 'London',
-    }), secondDate)
+    const migrated = migrateLegacyLocations(
+      workspace,
+      JSON.stringify({
+        'https://www.linkedin.com/in/Ada/?trk=old': ' Dubai ',
+        'not-a-profile': 'London',
+      }),
+      secondDate,
+    )
 
     expect(migrated.people).toEqual({
       'linkedin.com/in/ada': {
@@ -63,12 +72,26 @@ describe('portable workspace', () => {
   })
 
   it('merges imported annotations over local values and preserves archive history', () => {
-    const current = updatePersonAnnotation(createWorkspace(archive('current.zip'), firstDate), 'linkedin.com/in/ada', {
-      location: 'London', tags: [], notes: '',
-    }, firstDate)
-    const imported = updatePersonAnnotation(createWorkspace(archive('older.zip'), firstDate), 'linkedin.com/in/ada', {
-      location: 'Dubai', tags: ['Investor'], notes: '',
-    }, secondDate)
+    const current = updatePersonAnnotation(
+      createWorkspace(archive('current.zip'), firstDate),
+      'linkedin.com/in/ada',
+      {
+        location: 'London',
+        tags: [],
+        notes: '',
+      },
+      firstDate,
+    )
+    const imported = updatePersonAnnotation(
+      createWorkspace(archive('older.zip'), firstDate),
+      'linkedin.com/in/ada',
+      {
+        location: 'Dubai',
+        tags: ['Investor'],
+        notes: '',
+      },
+      secondDate,
+    )
 
     const merged = mergeWorkspaces(current, imported, archive('current.zip'), secondDate)
     expect(merged.people['linkedin.com/in/ada'].location?.value).toBe('Dubai')
@@ -78,9 +101,13 @@ describe('portable workspace', () => {
   it('rejects malformed and unsupported workspace files', () => {
     expect(() => parseWorkspaceFile('{broken')).toThrow('not valid JSON')
     expect(() => parseWorkspaceFile(JSON.stringify({ format: 'something-else' }))).toThrow('not a Common Ground')
-    expect(() => parseWorkspaceFile(JSON.stringify({
-      format: 'common-ground-workspace',
-      schemaVersion: 99,
-    }))).toThrow('version 99 is not supported')
+    expect(() =>
+      parseWorkspaceFile(
+        JSON.stringify({
+          format: 'common-ground-workspace',
+          schemaVersion: 99,
+        }),
+      ),
+    ).toThrow('version 99 is not supported')
   })
 })

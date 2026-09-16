@@ -9,6 +9,8 @@ describe('social sharing metadata', () => {
     expect(indexHtml).toContain('property="og:image:width" content="1200"')
     expect(indexHtml).toContain('property="og:image:height" content="630"')
     expect(indexHtml).toContain('name="twitter:image"')
-    expect(indexHtml).not.toContain('property="og:image" content="https://gruz0.github.io/linkedin-relationship-navigator/showcase/social-preview.png"')
+    expect(indexHtml).not.toContain(
+      'property="og:image" content="https://gruz0.github.io/linkedin-relationship-navigator/showcase/social-preview.png"',
+    )
   })
 })
