@@ -155,8 +155,9 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
         <div className="hero-copy">
           <h1>You may already know someone who can help.</h1>
           <p>
-            Find relevant people in your LinkedIn network, see whether you have actually spoken,
-            and recover the context before reconnecting—all inside your browser.
+            LinkedIn helps you find a person. Common Ground connects your exported connections and
+            message history so you can see who is relevant, whether you have actually spoken, and the
+            context before reaching out—all inside your browser.
           </p>
           <div className="outcome-path" aria-label="Find the right person, understand the relationship, and decide who to contact">
             <strong>Find the right person</strong>
@@ -203,20 +204,53 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
 
       <section className="use-cases" aria-labelledby="use-cases-heading">
         <header>
-          <h2 id="use-cases-heading">Your network matters most when you have a decision to make.</h2>
+          <h2 id="use-cases-heading">Ask questions that cross your network and message history.</h2>
         </header>
         <div className="use-case-grid">
           <article>
             <span className="use-case-icon"><BriefcaseBusiness size={21} /></span>
-            <div><h3>Making a career move</h3><p>Find people at a target company and understand the relationship before asking for advice.</p></div>
+            <div><h3>Which founders have I actually spoken with?</h3><p>Combine role information with two-way conversation history.</p></div>
           </article>
           <article>
-            <span className="use-case-icon"><Users size={21} /></span>
-            <div><h3>Hiring or raising</h3><p>Identify relevant founders, investors, and leaders—and see who you have actually spoken with.</p></div>
+            <span className="use-case-icon"><ArrowUpRight size={21} /></span>
+            <div><h3>Who did I contact without receiving a reply?</h3><p>See outbound-only relationships across the complete network.</p></div>
           </article>
           <article>
-            <span className="use-case-icon"><ContactRound size={21} /></span>
-            <div><h3>Reconnecting with intent</h3><p>Review conversation recency and history before reaching out to a valuable connection.</p></div>
+            <span className="use-case-icon"><Inbox size={21} /></span>
+            <div><h3>Which connections have no matching conversation?</h3><p>Separate accumulated connections from relationships with visible history.</p></div>
+          </article>
+        </div>
+        <div className="data-join" aria-label="Common Ground combines connection role and company data with message direction, recency, and history">
+          <div className="data-source"><code>Connections.csv</code><span>Role · Company</span></div>
+          <span className="join-operator" aria-hidden="true">+</span>
+          <div className="data-source"><code>Messages.csv</code><span>Direction · Recency · History</span></div>
+          <span className="join-operator join-arrow" aria-hidden="true">→</span>
+          <div className="data-source data-result"><strong>Common Ground</strong><span>Relationship context</span></div>
+        </div>
+      </section>
+
+      <section className="tool-boundary" aria-labelledby="tool-boundary-heading">
+        <header>
+          <h2 id="tool-boundary-heading">Use the right tool for the question.</h2>
+          <p>Common Ground is a companion to LinkedIn, not a replacement.</p>
+        </header>
+        <div className="tool-boundary-grid">
+          <article>
+            <h3>Use LinkedIn for</h3>
+            <ul>
+              <li>Current profiles and locations</li>
+              <li>Finding one particular person</li>
+              <li>Sending and continuing messages</li>
+            </ul>
+          </article>
+          <article>
+            <h3>Use Common Ground for</h3>
+            <ul>
+              <li>Combining role or company with relationship status</li>
+              <li>Reviewing conversation evidence across many connections</li>
+              <li>Keeping private notes, tags, and portable annotations</li>
+              <li>Working locally with a snapshot you control</li>
+            </ul>
           </article>
         </div>
       </section>

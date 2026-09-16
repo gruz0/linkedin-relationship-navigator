@@ -74,7 +74,7 @@ async function captureSocialPreview(page: Page) {
         <section class="copy">
           <div class="brand"><span class="mark"></span>Common Ground</div>
           <h1>You may already know someone who can help.</h1>
-          <p>Find the right person, understand the relationship, and reconnect with context.</p>
+          <p>Analyze connections and conversation history together—locally in your browser.</p>
           <div class="labels"><span>Your data stays local</span><span>Fictional demo included</span></div>
         </section>
         <div class="screen"><img src="data:image/jpeg;base64,${overview}" alt="" /></div>
