@@ -9,6 +9,7 @@ import {
   Check,
   ChevronDown,
   CircleAlert,
+  Clock3,
   Code2,
   ContactRound,
   Download,
@@ -64,12 +65,15 @@ import {
 } from './privacy'
 import { createDemoData, createDemoWorkspace } from './demo'
 import foundersTwoWayScreenshot from '../screenshots/founders-two-way.png'
+import linkedInDataPrivacyScreenshot from '../screenshots/linkedin-export-01-data-privacy.png'
+import linkedInRequestArchiveScreenshot from '../screenshots/linkedin-export-02-request-archive.png'
 import networkOverviewScreenshot from '../screenshots/network-overview-privacy.png'
 import relationshipDetailScreenshot from '../screenshots/relationship-detail-privacy.png'
 
 const PAGE_SIZE = 60
 const CREATOR_LINKEDIN_URL = 'https://www.linkedin.com/in/alexanderkadyrov/'
 const CREATOR_GITHUB_URL = 'https://github.com/gruz0'
+const LINKEDIN_DOWNLOAD_HELP_URL = 'https://www.linkedin.com/help/linkedin/answer/a1339364'
 
 type ConversationFilter = ConversationStatus | 'all' | 'any'
 type LocationFilter = 'all' | 'unknown' | string
@@ -255,6 +259,62 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
             </ul>
           </article>
         </div>
+      </section>
+
+      <section className="export-guide" aria-labelledby="export-guide-heading">
+        <header>
+          <h2 id="export-guide-heading">Get your LinkedIn archive.</h2>
+          <p>Use LinkedIn on desktop to request the larger account-data archive that Common Ground can open.</p>
+        </header>
+        <div className="export-steps">
+          <article>
+            <div className="export-step-copy">
+              <span>1</span>
+              <div>
+                <h3>Open Download your data</h3>
+                <p>Go to Settings &amp; Privacy → Data privacy, then choose <strong>Download your data</strong>.</p>
+              </div>
+            </div>
+            <figure>
+              <a href={linkedInDataPrivacyScreenshot} target="_blank" rel="noreferrer" aria-label="Open the LinkedIn Data privacy settings screenshot">
+                <img src={linkedInDataPrivacyScreenshot} width="1194" height="771" loading="lazy" decoding="async" alt="LinkedIn Data privacy settings with Download your data highlighted" />
+              </a>
+            </figure>
+          </article>
+          <article>
+            <div className="export-step-copy">
+              <span>2</span>
+              <div>
+                <h3>Request the larger archive</h3>
+                <p>Select the larger data archive and click <strong>Request archive</strong>. LinkedIn will email you when it is ready.</p>
+              </div>
+            </div>
+            <figure>
+              <a href={linkedInRequestArchiveScreenshot} target="_blank" rel="noreferrer" aria-label="Open the LinkedIn archive request screenshot">
+                <img src={linkedInRequestArchiveScreenshot} width="1194" height="701" loading="lazy" decoding="async" alt="LinkedIn Download my data page with the larger archive selected and a 24-hour estimate" />
+              </a>
+            </figure>
+          </article>
+        </div>
+        <div className="export-notes">
+          <article>
+            <Clock3 size={21} />
+            <div>
+              <strong>Allow up to 24 hours.</strong>
+              <p>LinkedIn may prepare a request in stages, so do not expect the complete archive immediately. If you receive multiple notifications, wait for the larger archive. Its download link is currently available for 72 hours.</p>
+            </div>
+          </article>
+          <article>
+            <ShieldCheck size={21} />
+            <div>
+              <strong>Keep a private backup.</strong>
+              <p>Export periodically so you retain a snapshot you control if you ever lose access to your account. The ZIP contains sensitive personal data, so store it securely.</p>
+            </div>
+          </article>
+        </div>
+        <a className="export-help-link" href={LINKEDIN_DOWNLOAD_HELP_URL} target="_blank" rel="noreferrer">
+          Read LinkedIn’s current download instructions <ArrowUpRight size={15} />
+        </a>
       </section>
 
       <section className="showcase-section">

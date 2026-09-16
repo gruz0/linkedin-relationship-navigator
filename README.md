@@ -18,6 +18,24 @@ LinkedIn lets people download their professional network as a ZIP full of CSV fi
 
 Common Ground turns that export into a searchable workspace without sending it to a server. Visitors without an export can explore the complete product through a clearly labeled fictional demo.
 
+## Get your LinkedIn export
+
+Use LinkedIn on desktop to request the larger account-data archive:
+
+1. Open **Settings & Privacy → Data privacy → Download your data**.
+
+   ![LinkedIn Data privacy settings with Download your data highlighted](screenshots/linkedin-export-01-data-privacy.png)
+
+2. Select the larger data archive, click **Request archive**, and wait for LinkedIn’s email.
+
+   ![LinkedIn Download my data page with the larger archive selected and a 24-hour estimate](screenshots/linkedin-export-02-request-archive.png)
+
+> **Allow up to 24 hours.** LinkedIn may prepare a request in stages, so do not assume the first notification contains the complete archive. If several notifications arrive, wait for the larger archive. LinkedIn currently keeps the download link active for 72 hours.
+
+It is worth making a fresh export periodically. The ZIP is a user-owned snapshot of your professional data if you later lose access to the account. It also contains sensitive personal data, so store the backup securely and never commit it to a repository.
+
+See [LinkedIn’s current download instructions](https://www.linkedin.com/help/linkedin/answer/a1339364) if its interface or delivery process changes.
+
 ## What it supports
 
 - Search connections by name, company, title, normalized role, and personal context
