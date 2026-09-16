@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { Connection } from './data'
-import {
-  DEFAULT_PRIVACY_MODE,
-  createPrivacyAliases,
-  personPresentation,
-} from './privacy'
+import { createPrivacyAliases, DEFAULT_PRIVACY_MODE, personPresentation } from './privacy'
 
-function person(id: string, fullName: string, company: string, position: string, roles: Connection['roles']): Connection {
+function person(
+  id: string,
+  fullName: string,
+  company: string,
+  position: string,
+  roles: Connection['roles'],
+): Connection {
   const [firstName, ...lastName] = fullName.split(' ')
   return {
     id,
@@ -25,7 +27,11 @@ function person(id: string, fullName: string, company: string, position: string,
   }
 }
 
-const ada = person('linkedin.com/in/ada-lovelace', 'Ada Lovelace', 'Analytical Engines', 'Founder & CEO', ['Founder', 'CEO', 'C-suite'])
+const ada = person('linkedin.com/in/ada-lovelace', 'Ada Lovelace', 'Analytical Engines', 'Founder & CEO', [
+  'Founder',
+  'CEO',
+  'C-suite',
+])
 const grace = person('linkedin.com/in/grace-hopper', 'Grace Hopper', 'Analytical Engines', 'Rear Admiral', [])
 
 describe('privacy preference', () => {

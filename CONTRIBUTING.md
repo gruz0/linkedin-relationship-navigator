@@ -20,10 +20,14 @@ Use the fictional demo workspace for normal development. Do not add real LinkedI
 
 | Command | Purpose |
 | --- | --- |
-| `bun run dev` | Start the Vite development server |
-| `bun run test` | Run the test suite once |
 | `bun run build` | Type-check and create a production build |
+| `bun run check` | Check formatting, lint rules, unused code, and dependencies |
+| `bun run check:fix` | Apply safe Biome formatting and lint fixes |
+| `bun run dev` | Start the Vite development server |
+| `bun run format` | Format supported files with Biome |
+| `bun run lint` | Run the Biome linter |
 | `bun run preview` | Preview the production build locally |
+| `bun run test` | Run the test suite once |
 | `bun run capture:showcase` | Recreate fictional-demo assets and the GitHub and Open Graph previews |
 
 ## Before submitting a change
@@ -31,11 +35,12 @@ Use the fictional demo workspace for normal development. Do not add real LinkedI
 Run the same essential checks used by continuous deployment:
 
 ```bash
+bun run check
 bun run test
 bun run build
 ```
 
-Add or update tests when behavior changes. Keep dependencies pinned to exact versions and commit `bun.lock` when dependency resolution changes.
+Add or update tests when behavior changes. Keep dependencies pinned to exact versions and commit `bun.lock` when dependency resolution changes. Biome configuration preserves the project’s single-quote, semicolon-as-needed style; Knip should pass without blanket suppressions.
 
 ## Product and privacy conventions
 

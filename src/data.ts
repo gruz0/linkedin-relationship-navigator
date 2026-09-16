@@ -1,5 +1,5 @@
-import Papa from 'papaparse'
 import { strFromU8, unzipSync } from 'fflate'
+import Papa from 'papaparse'
 
 export const ROLE_CATEGORIES = [
   'Founder',
@@ -133,9 +133,9 @@ function parseConnectionsCsv(text: string): CsvRow[] {
   if (headerIndex < 0) throw new Error('Connections.csv has an unfamiliar format.')
 
   const headers = rows[headerIndex].map((header) => header.trim())
-  return rows.slice(headerIndex + 1).map((row) =>
-    Object.fromEntries(headers.map((header, index) => [header, row[index]?.trim() ?? ''])),
-  )
+  return rows
+    .slice(headerIndex + 1)
+    .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index]?.trim() ?? ''])))
 }
 
 function parseConnectionDate(value: string): Date | null {
@@ -158,10 +158,7 @@ export function classifyRole(title: string): RoleCategory[] {
   const rules: Array<[RoleCategory, RegExp]> = [
     ['Founder', /\b(?:co[- ]?)?founder\b/i],
     ['CEO', /\b(?:ceo|chief executive officer)\b/i],
-    [
-      'C-suite',
-      /\b(?:ceo|cto|cfo|coo|cmo|cio|cpo|cro|chief\s+[a-z& -]+\s+officer)\b/i,
-    ],
+    ['C-suite', /\b(?:ceo|cto|cfo|coo|cmo|cio|cpo|cro|chief\s+[a-z& -]+\s+officer)\b/i],
     ['Investor', /\b(?:investor|venture partner|general partner|investment partner|angel)\b/i],
     ['Director', /\b(?:director|managing director)\b/i],
     ['VP', /\b(?:vp|vice president)\b/i],
@@ -181,7 +178,10 @@ function fileText(files: Record<string, Uint8Array>, fileName: string): string {
   return strFromU8(entry[1])
 }
 
-export async function parseLinkedInArchive(buffer: ArrayBuffer, sourceFileName = 'LinkedIn export.zip'): Promise<ArchiveData> {
+export async function parseLinkedInArchive(
+  buffer: ArrayBuffer,
+  sourceFileName = 'LinkedIn export.zip',
+): Promise<ArchiveData> {
   let files: Record<string, Uint8Array>
   try {
     files = unzipSync(new Uint8Array(buffer))
@@ -237,7 +237,8 @@ export async function parseLinkedInArchive(buffer: ArrayBuffer, sourceFileName =
     if (connectionIds.has(senderUrl)) touchedConnections.add(senderUrl)
     for (const url of recipientUrls) if (connectionIds.has(url)) touchedConnections.add(url)
 
-    const direction = selfUrls.has(senderUrl) || normalizeName(row.FROM ?? '') === normalizedSelfName ? 'sent' : 'received'
+    const direction =
+      selfUrls.has(senderUrl) || normalizeName(row.FROM ?? '') === normalizedSelfName ? 'sent' : 'received'
     const message: MessageRecord = {
       conversationId: row['CONVERSATION ID'] ?? '',
       from: row.FROM ?? '',
