@@ -243,6 +243,23 @@ button:focus-visible, summary:focus-visible, select:focus-visible, a:focus-visib
 .stat-card strong { margin-top: 3px; font-size: 13px; }
 .stat-card small { color: var(--muted); font-size: 11px; margin-top: 6px; }
 
+.quick-questions { margin: 15px 0; padding: 20px; border: 1px solid #d8d8d0; border-radius: var(--radius-panel); background: rgba(251,250,246,.72); box-shadow: 0 2px 9px rgba(29,41,38,.025); }
+.quick-questions > header { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 15px; }
+.quick-questions h2 { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 23px; line-height: 1.1; letter-spacing: -.02em; }
+.quick-questions > header p { margin: 6px 0 0; color: var(--muted); font-size: 11px; }
+.quick-question-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.quick-question-grid > button { min-width: 0; min-height: 76px; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 13px 14px; border: 1px solid #d7d8d1; border-radius: 11px; background: var(--paper); color: var(--ink); text-align: left; box-shadow: 0 2px 7px rgba(29,41,38,.025); transition: border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease; }
+.quick-question-grid > button:hover { border-color: #9eb8ad; background: #f7faf8; box-shadow: 0 5px 14px rgba(29,41,38,.06); transform: translateY(-1px); }
+.quick-question-grid > button.active { border-color: var(--green); background: var(--green); color: white; box-shadow: 0 6px 16px rgba(23,76,66,.16); }
+.quick-question-copy { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.quick-question-copy strong { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 12px; }
+.quick-question-copy small { overflow: hidden; color: var(--muted); white-space: nowrap; text-overflow: ellipsis; font-size: 9px; font-weight: 650; letter-spacing: .025em; }
+.quick-question-result { min-width: 38px; display: flex; flex-direction: column; align-items: flex-end; }
+.quick-question-result strong { font-family: Georgia, 'Times New Roman', serif; font-size: 18px; line-height: 1; font-variant-numeric: tabular-nums; }
+.quick-question-result small { margin-top: 3px; color: var(--muted); font-size: 8px; text-transform: uppercase; letter-spacing: .06em; }
+.quick-question-grid > button > svg { color: #799086; }
+.quick-question-grid > button.active small, .quick-question-grid > button.active > svg { color: rgba(255,255,255,.72); }
+
 .location-notice { margin: 15px 0 25px; min-height: 70px; display: flex; align-items: center; gap: 14px; background: #e8eee9; border: 1px solid #d0ddd6; padding: 13px 16px; border-radius: var(--radius-panel); }
 .notice-icon { width: 39px; height: 39px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 10px; background: rgba(255,255,255,.6); color: var(--green); }
 .location-notice > div:nth-child(2) { display: flex; flex: 1; min-width: 0; flex-direction: column; font-size: 12px; }
@@ -431,6 +448,8 @@ button:focus-visible, summary:focus-visible, select:focus-visible, a:focus-visib
   .export-steps, .export-notes { grid-template-columns: 1fr; }
   .export-step-copy { min-height: auto; }
   .showcase-section { margin-top: 75px; }
+  .quick-question-grid { grid-template-columns: 1fr; }
+  .quick-question-grid > button { min-height: 68px; }
   .explorer { grid-template-columns: 1fr; }
   .explorer::before { display: none; }
   .filter-panel { display: none; }
@@ -486,7 +505,11 @@ button:focus-visible, summary:focus-visible, select:focus-visible, a:focus-visib
   .stat-card { min-height: 112px; padding: 16px 12px; gap: 10px; }
   .stat-icon { width: 31px; height: 31px; }
   .stat-value { font-size: 24px; }
+  .quick-questions { padding: 16px 12px; }
+  .quick-questions h2 { font-size: 21px; }
+  .quick-question-grid > button { padding: 12px; }
   .location-notice { align-items: flex-start; flex-wrap: wrap; }
+  .location-notice > div:nth-child(2) { flex-basis: calc(100% - 53px); }
   .location-notice button { margin-left: 53px; }
   .results-panel { padding: 18px 12px 12px; }
   .results-heading { padding: 0 3px; }

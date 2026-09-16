@@ -51,6 +51,7 @@ import {
 } from './data'
 import { createDemoData, createDemoWorkspace } from './demo'
 import { createPrivacyAliases, DEFAULT_PRIVACY_MODE, type PrivacyAliases, personPresentation } from './privacy'
+import { countQuickQuestionMatches, QUICK_QUESTIONS, type QuickQuestion } from './quick-questions'
 import {
   type AnnotationDraft,
   attachArchive,
@@ -536,10 +537,15 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   const [workspaceNotice, setWorkspaceNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const workspaceInputRef = useRef<HTMLInputElement>(null)
+  const explorerRef = useRef<HTMLElement>(null)
 
   const identifiable = useMemo(() => data.connections.filter((person) => person.isIdentifiable), [data])
   const privacyAliases = useMemo(() => createPrivacyAliases(identifiable), [identifiable])
   const conversationCounts = useMemo(() => conversationCountsFor(data), [data])
+  const quickQuestionCounts = useMemo(
+    () => new Map(QUICK_QUESTIONS.map((question) => [question.id, countQuickQuestionMatches(data, question)])),
+    [data],
+  )
   const cityOptions = useMemo(
     () =>
       [
@@ -629,6 +635,15 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     (conversation === 'all' ? 0 : 1) +
     (!privacyMode && locationFilter !== 'all' ? 1 : 0) +
     (!privacyMode && dubaiSignalsOnly ? 1 : 0)
+  const activeQuickQuestion = QUICK_QUESTIONS.find(
+    (question) =>
+      !query &&
+      locationFilter === 'all' &&
+      !dubaiSignalsOnly &&
+      conversation === question.conversation &&
+      selectedRoles.size === question.roles.length &&
+      question.roles.every((role) => selectedRoles.has(role)),
+  )
 
   const togglePrivacyMode = () => {
     if (privacyMode) {
@@ -696,6 +711,27 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     setConversation('all')
     setLocationFilter('all')
     setDubaiSignalsOnly(false)
+  }
+
+  const showExplorer = () => {
+    window.requestAnimationFrame(() => explorerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
+  const applyQuickQuestion = (question: QuickQuestion) => {
+    if (activeQuickQuestion?.id === question.id) {
+      clearFilters()
+      showExplorer()
+      return
+    }
+
+    setQuery('')
+    setSelectedRoles(new Set(question.roles))
+    setConversation(question.conversation)
+    setLocationFilter('all')
+    setDubaiSignalsOnly(false)
+    setSort(question.sort)
+    setFiltersOpen(false)
+    showExplorer()
   }
 
   return (
@@ -833,6 +869,39 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
           <StatCard icon={<Inbox />} value={twoWayCount} label="Two-way" detail="Both sent and received" tone="green" />
         </section>
 
+        <section className="quick-questions" aria-labelledby="quick-questions-heading">
+          <header>
+            <div>
+              <h2 id="quick-questions-heading">Start with a useful question</h2>
+              <p>Each shortcut applies ordinary filters you can inspect, change, or clear.</p>
+            </div>
+          </header>
+          <div className="quick-question-grid">
+            {QUICK_QUESTIONS.map((question) => {
+              const active = activeQuickQuestion?.id === question.id
+              return (
+                <button
+                  type="button"
+                  key={question.id}
+                  className={active ? 'active' : ''}
+                  aria-pressed={active}
+                  onClick={() => applyQuickQuestion(question)}
+                >
+                  <span className="quick-question-copy">
+                    <strong>{question.title}</strong>
+                    <small>{question.filterSummary}</small>
+                  </span>
+                  <span className="quick-question-result">
+                    <strong>{quickQuestionCounts.get(question.id)?.toLocaleString() ?? '0'}</strong>
+                    <small>people</small>
+                  </span>
+                  <ArrowUpRight size={17} aria-hidden="true" />
+                </button>
+              )
+            })}
+          </div>
+        </section>
+
         <section className="location-notice">
           <div className="notice-icon">
             <MapPin size={20} />
@@ -864,7 +933,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
           )}
         </section>
 
-        <section className="explorer">
+        <section className="explorer" ref={explorerRef}>
           <aside className={`filter-panel ${filtersOpen ? 'mobile-open' : ''}`}>
             <div className="filter-panel-heading">
               <span>
