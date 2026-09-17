@@ -74,6 +74,13 @@ import {
   THREAD_COUNT_FILTER_OPTIONS,
   type ThreadCountFilter,
 } from './relationship-filters'
+import {
+  DEFAULT_RESULT_BATCH_SIZE,
+  nextVisibleResultCount,
+  parseResultBatchSize,
+  RESULT_BATCH_SIZES,
+  type ResultBatchSize,
+} from './result-batching'
 import { lockDocumentScroll } from './scroll-lock'
 import {
   buildShortlistRows,
@@ -100,7 +107,6 @@ import {
   type WorkspaceFile,
 } from './workspace'
 
-const PAGE_SIZE = 60
 const CREATOR_LINKEDIN_URL = 'https://www.linkedin.com/in/alexanderkadyrov/'
 const CREATOR_GITHUB_URL = 'https://github.com/gruz0'
 const LINKEDIN_DOWNLOAD_HELP_URL = 'https://www.linkedin.com/help/linkedin/answer/a1339364'
@@ -575,7 +581,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   const [locationFilter, setLocationFilter] = useState<LocationFilter>('all')
   const [dubaiSignalsOnly, setDubaiSignalsOnly] = useState(false)
   const [sort, setSort] = useState<SortMode>('connected')
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [batchSize, setBatchSize] = useState<ResultBatchSize>(DEFAULT_RESULT_BATCH_SIZE)
+  const [visibleCount, setVisibleCount] = useState<number>(DEFAULT_RESULT_BATCH_SIZE)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [shortlistIds, setShortlistIds] = useState<Set<string>>(new Set())
   const [exportOpen, setExportOpen] = useState(false)
@@ -765,10 +772,11 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   )
   const allFilteredSelected = filtered.length > 0 && filtered.every((person) => shortlistIds.has(person.id))
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Reset pagination when any result-shaping control changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Reset result batching when any result-shaping control changes.
   useEffect(
-    () => setVisibleCount(PAGE_SIZE),
+    () => setVisibleCount(batchSize),
     [
+      batchSize,
       query,
       selectedRoles,
       conversation,
@@ -1364,6 +1372,24 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
                 </select>
                 <ChevronDown size={14} />
               </label>
+              <label className="batch-control">
+                <select
+                  aria-label="Results per batch"
+                  value={batchSize}
+                  onChange={(event) => {
+                    const nextBatchSize = parseResultBatchSize(event.target.value)
+                    setBatchSize(nextBatchSize)
+                    setVisibleCount(nextBatchSize)
+                  }}
+                >
+                  {RESULT_BATCH_SIZES.map((size) => (
+                    <option key={size} value={size}>
+                      {size} at a time
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} />
+              </label>
             </div>
 
             {activeFilterCount > 0 && (
@@ -1480,10 +1506,24 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
               )}
             </div>
 
-            {visibleCount < filtered.length && (
-              <button type="button" className="load-more" onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>
-                Show {Math.min(PAGE_SIZE, filtered.length - visibleCount)} more
-              </button>
+            {filtered.length > 0 && (
+              <div className="result-progress" aria-live="polite">
+                <span>
+                  Showing <strong>{Math.min(visibleCount, filtered.length).toLocaleString()}</strong> of{' '}
+                  {filtered.length.toLocaleString()} results
+                </span>
+                {visibleCount < filtered.length && (
+                  <button
+                    type="button"
+                    className="load-more"
+                    onClick={() =>
+                      setVisibleCount((count) => nextVisibleResultCount(count, batchSize, filtered.length))
+                    }
+                  >
+                    Show {Math.min(batchSize, filtered.length - visibleCount).toLocaleString()} more
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </section>
