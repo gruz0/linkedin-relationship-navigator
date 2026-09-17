@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.0](https://github.com/gruz0/linkedin-relationship-navigator/compare/v0.4.0...v0.5.0) (2026-09-17)
+
+
+### Features
+
+* add configurable result batches ([#17](https://github.com/gruz0/linkedin-relationship-navigator/issues/17)) ([b74e298](https://github.com/gruz0/linkedin-relationship-navigator/commit/b74e298055e3e2ca45ac94069a7e00e4c2624cbc))
+* clarify roles in privacy mode ([#16](https://github.com/gruz0/linkedin-relationship-navigator/issues/16)) ([98b5413](https://github.com/gruz0/linkedin-relationship-navigator/commit/98b5413b921938a1da28a8cc8e92ce2a249d2ebf))
+* compact conversation filter ([#14](https://github.com/gruz0/linkedin-relationship-navigator/issues/14)) ([2f21f9c](https://github.com/gruz0/linkedin-relationship-navigator/commit/2f21f9c1104bf5e9225830bbec88a1d02b4e4ebc))
+* keep result controls visible while scrolling ([#18](https://github.com/gruz0/linkedin-relationship-navigator/issues/18)) ([f9057ab](https://github.com/gruz0/linkedin-relationship-navigator/commit/f9057abbcf29268b641593dfe5643848778a5d39))
+
 ## [0.4.0](https://github.com/gruz0/linkedin-relationship-navigator/compare/v0.3.0...v0.4.0) (2026-09-17)
 
 
