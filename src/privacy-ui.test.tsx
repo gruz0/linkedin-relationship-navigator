@@ -99,6 +99,8 @@ describe('Privacy mode UI', () => {
 
     expect(html).toContain('Person 001')
     expect(html).toContain('Company 001')
+    expect(html).toContain('Founder · CEO · C-suite')
+    expect(html).toContain('<span class="role-tag">Founder</span>')
     expect(html).not.toContain('matching messages')
     for (const value of sensitiveValues) expect(html).not.toContain(value)
   })
@@ -118,6 +120,8 @@ describe('Privacy mode UI', () => {
     )
 
     expect(html).toContain('Person 001')
+    expect(html).toContain('<span class="role-tag">Founder</span>')
+    expect(html).toContain('<span class="role-tag">CEO</span>')
     expect(html).toContain('Message content hidden in Privacy mode.')
     expect(html).not.toContain('href=')
     for (const value of sensitiveValues) expect(html).not.toContain(value)

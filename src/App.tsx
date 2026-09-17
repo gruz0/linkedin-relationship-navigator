@@ -811,7 +811,10 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
 
   const togglePrivacyMode = () => {
     if (privacyMode) {
-      if (!window.confirm('Turn off Privacy mode and show real names, companies, messages, and annotations?')) return
+      if (
+        !window.confirm('Turn off Privacy mode and show real names, companies, raw titles, messages, and annotations?')
+      )
+        return
       setPrivacyMode(false)
       return
     }
@@ -1042,7 +1045,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
 
       {privacyMode && (
         <div className="privacy-watermark">
-          <ShieldCheck size={15} /> Privacy mode · display data is masked
+          <ShieldCheck size={15} /> Privacy mode · identifying details masked
         </div>
       )}
       {isDemo && (
@@ -1128,20 +1131,18 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
         </section>
 
         <section className="location-notice">
-          <div className="notice-icon">
-            <MapPin size={20} />
-          </div>
+          <div className="notice-icon">{privacyMode ? <ShieldCheck size={20} /> : <MapPin size={20} />}</div>
           <div>
             <strong>
               {privacyMode
-                ? 'Privacy mode masks display and search.'
+                ? 'Identifying details are masked; role categories stay useful.'
                 : isDemo
                   ? 'Demo locations are manual annotations.'
                   : 'LinkedIn did not include connection locations.'}
             </strong>
             <span>
               {privacyMode
-                ? 'Search uses masked aliases and normalized roles only. Turn off Privacy mode to search real names, companies, locations, tags, notes, or message text. Source files and workspace data are unchanged.'
+                ? 'Names, companies, raw job titles, annotations, and messages stay hidden. Broad roles such as Founder or Engineering are derived from those titles and remain visible for filtering and search. Source files and workspace data are unchanged.'
                 : isDemo
                   ? 'They illustrate context you can add yourself; LinkedIn does not supply locations for connections in this export.'
                   : 'Add a city when reviewing a person. Company-name hints are available separately and are never treated as locations.'}
@@ -1174,6 +1175,11 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
               </button>
             </div>
             <FilterSection title="Roles">
+              {privacyMode && (
+                <p className="privacy-role-note">
+                  <ShieldCheck size={13} /> Broad categories stay visible; raw titles are hidden.
+                </p>
+              )}
               <div className="role-filter-list">
                 {ROLE_FILTER_CATEGORIES.map((role) => {
                   const active = selectedRoles.has(role)

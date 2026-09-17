@@ -279,6 +279,8 @@ button:focus-visible, summary:focus-visible, select:focus-visible, a:focus-visib
 .filter-mobile-title { display: none; }
 .filter-section { padding: 0 0 22px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
 .filter-section h3 { margin: 0 0 11px; font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: #727d78; }
+.privacy-role-note { display: flex; align-items: flex-start; gap: 6px; margin: -2px 0 9px; color: #68746f; font-size: 10px; line-height: 1.4; }
+.privacy-role-note svg { flex: 0 0 auto; margin-top: 1px; color: var(--green-2); }
 .role-filter-list { display: grid; gap: 3px; }
 .role-filter-list button { border: 0; background: transparent; border-radius: 8px; padding: 8px; display: flex; justify-content: space-between; font-size: 13px; text-align: left; }
 .role-filter-list button span:last-child { color: #87918c; font-size: 11px; font-variant-numeric: tabular-nums; }
