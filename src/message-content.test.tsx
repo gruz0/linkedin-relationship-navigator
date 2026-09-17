@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import { MessageContent, messageContentSegments } from './message-content'
+import { highlightedTextSegments, MessageContent, messageContentSegments } from './message-content'
 
 describe('message content links', () => {
   it('turns explicit HTTP and HTTPS URLs into safe links while preserving surrounding text', () => {
@@ -32,5 +32,20 @@ describe('message content links', () => {
       '<p>&lt;script&gt;alert(1)&lt;/script&gt; www.example.com javascript:alert(1) ftp://example.com https://</p>',
     )
     expect(html).not.toContain('<a')
+  })
+
+  it('highlights every literal case-insensitive match without breaking links or interpreting HTML', () => {
+    const html = renderToStaticMarkup(
+      <MessageContent content="MVP notes: https://example.com/MVP?next=<unsafe> and another mvp." highlight="mvp" />,
+    )
+
+    expect(highlightedTextSegments('MVP and mvp', 'mvp')).toEqual([
+      { value: 'MVP', highlighted: true, start: 0 },
+      { value: ' and ', highlighted: false, start: 3 },
+      { value: 'mvp', highlighted: true, start: 8 },
+    ])
+    expect(html.match(/<mark>/g)).toHaveLength(3)
+    expect(html).toContain('href="https://example.com/MVP?next="')
+    expect(html).toContain('&lt;unsafe&gt;')
   })
 })

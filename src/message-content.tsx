@@ -1,3 +1,5 @@
+import { Fragment } from 'react'
+
 const URL_CANDIDATE_PATTERN = /https?:\/\/[^\s<>"']+/giu
 const UNCONDITIONAL_TRAILING_PUNCTUATION = new Set(['.', ',', '!', '?', ':', ';'])
 const CLOSING_PAIRS = new Map([
@@ -9,6 +11,8 @@ const CLOSING_PAIRS = new Map([
 export type MessageContentSegment =
   | { kind: 'text'; value: string; start: number }
   | { kind: 'link'; value: string; href: string; start: number }
+
+export type HighlightedTextSegment = { value: string; highlighted: boolean; start: number }
 
 function occurrences(value: string, character: string) {
   return [...value].filter((item) => item === character).length
@@ -59,16 +63,45 @@ export function messageContentSegments(content: string): MessageContentSegment[]
   return segments
 }
 
-export function MessageContent({ content }: { content: string }) {
+export function highlightedTextSegments(text: string, query: string): HighlightedTextSegment[] {
+  const normalizedQuery = query.trim().toLocaleLowerCase()
+  if (!normalizedQuery) return [{ value: text, highlighted: false, start: 0 }]
+
+  const normalizedText = text.toLocaleLowerCase()
+  const segments: HighlightedTextSegment[] = []
+  let cursor = 0
+  let matchStart = normalizedText.indexOf(normalizedQuery)
+  while (matchStart >= 0) {
+    if (matchStart > cursor) segments.push({ value: text.slice(cursor, matchStart), highlighted: false, start: cursor })
+    const matchEnd = matchStart + normalizedQuery.length
+    segments.push({ value: text.slice(matchStart, matchEnd), highlighted: true, start: matchStart })
+    cursor = matchEnd
+    matchStart = normalizedText.indexOf(normalizedQuery, cursor)
+  }
+  if (cursor < text.length) segments.push({ value: text.slice(cursor), highlighted: false, start: cursor })
+  return segments
+}
+
+export function HighlightedText({ text, query }: { text: string; query: string }) {
+  return highlightedTextSegments(text, query).map((segment) =>
+    segment.highlighted ? (
+      <mark key={segment.start}>{segment.value}</mark>
+    ) : (
+      <Fragment key={segment.start}>{segment.value}</Fragment>
+    ),
+  )
+}
+
+export function MessageContent({ content, highlight = '' }: { content: string; highlight?: string }) {
   return (
     <p>
       {messageContentSegments(content).map((segment) =>
         segment.kind === 'link' ? (
           <a key={segment.start} href={segment.href} target="_blank" rel="nofollow noopener noreferrer">
-            {segment.value}
+            <HighlightedText text={segment.value} query={highlight} />
           </a>
         ) : (
-          segment.value
+          <HighlightedText key={segment.start} text={segment.value} query={highlight} />
         ),
       )}
     </p>

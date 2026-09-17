@@ -38,7 +38,7 @@ See [LinkedIn’s current download instructions](https://www.linkedin.com/help/l
 
 ## What it supports
 
-- Search connections by name, company, title, normalized role, and personal context
+- Search connections by name, company, title, normalized role, personal context, and—outside Privacy mode—locally matched message text
 - Filter relationships as two-way, outbound-only, inbound-only, or no message found
 - Filter conversations by recency, message depth, thread count, and who sent the latest archived message
 - View message counts, recency, threads, and conversation history
