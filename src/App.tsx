@@ -17,6 +17,7 @@ import {
   FileDown,
   FileUp,
   Inbox,
+  ListTree,
   LoaderCircle,
   LockKeyhole,
   MapPin,
@@ -53,15 +54,23 @@ import { createDemoData, createDemoWorkspace } from './demo'
 import { createPrivacyAliases, DEFAULT_PRIVACY_MODE, type PrivacyAliases, personPresentation } from './privacy'
 import { countQuickQuestionMatches, QUICK_QUESTIONS, type QuickQuestion } from './quick-questions'
 import {
+  LAST_DIRECTION_FILTER_LABELS,
+  LAST_DIRECTION_FILTER_OPTIONS,
+  type LastDirectionFilter,
   MESSAGE_DEPTH_FILTER_LABELS,
   MESSAGE_DEPTH_FILTER_OPTIONS,
   type MessageDepthFilter,
+  matchesLastDirectionFilter,
   matchesMessageDepthFilter,
   matchesRecencyFilter,
   matchesRelationshipFilters,
+  matchesThreadCountFilter,
   RECENCY_FILTER_LABELS,
   RECENCY_FILTER_OPTIONS,
   type RecencyFilter,
+  THREAD_COUNT_FILTER_LABELS,
+  THREAD_COUNT_FILTER_OPTIONS,
+  type ThreadCountFilter,
 } from './relationship-filters'
 import {
   buildShortlistRows,
@@ -558,6 +567,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   const [conversation, setConversation] = useState<ConversationFilter>('all')
   const [recency, setRecency] = useState<RecencyFilter>('all')
   const [messageDepth, setMessageDepth] = useState<MessageDepthFilter>('all')
+  const [threadCount, setThreadCount] = useState<ThreadCountFilter>('all')
+  const [lastDirection, setLastDirection] = useState<LastDirectionFilter>('all')
   const [locationFilter, setLocationFilter] = useState<LocationFilter>('all')
   const [dubaiSignalsOnly, setDubaiSignalsOnly] = useState(false)
   const [sort, setSort] = useState<SortMode>('connected')
@@ -606,6 +617,26 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
       ),
     [data, identifiable],
   )
+  const threadCountCounts = useMemo(
+    () =>
+      new Map(
+        THREAD_COUNT_FILTER_OPTIONS.map((option) => [
+          option.value,
+          identifiable.filter((person) => matchesThreadCountFilter(statsFor(data, person.id), option.value)).length,
+        ]),
+      ),
+    [data, identifiable],
+  )
+  const lastDirectionCounts = useMemo(
+    () =>
+      new Map(
+        LAST_DIRECTION_FILTER_OPTIONS.map((option) => [
+          option.value,
+          identifiable.filter((person) => matchesLastDirectionFilter(statsFor(data, person.id), option.value)).length,
+        ]),
+      ),
+    [data, identifiable],
+  )
   const cityOptions = useMemo(
     () =>
       [
@@ -639,7 +670,14 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
       const matchesRole = matchesRoleFilters(person.roles, selectedRoles)
       const matchesConversation =
         conversation === 'all' || (conversation === 'any' ? stats.status !== 'none' : stats.status === conversation)
-      const matchesRelationship = matchesRelationshipFilters(stats, recency, messageDepth, referenceDate)
+      const matchesRelationship = matchesRelationshipFilters(
+        stats,
+        recency,
+        messageDepth,
+        threadCount,
+        lastDirection,
+        referenceDate,
+      )
       const matchesLocation =
         privacyMode ||
         locationFilter === 'all' ||
@@ -674,6 +712,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     dubaiSignalsOnly,
     identifiable,
     locationFilter,
+    lastDirection,
     messageDepth,
     privacyAliases,
     privacyMode,
@@ -682,6 +721,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     referenceDate,
     selectedRoles,
     sort,
+    threadCount,
     workspace,
   ])
 
@@ -706,7 +746,18 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   // biome-ignore lint/correctness/useExhaustiveDependencies: Reset pagination when any result-shaping control changes.
   useEffect(
     () => setVisibleCount(PAGE_SIZE),
-    [query, selectedRoles, conversation, recency, messageDepth, locationFilter, dubaiSignalsOnly, sort],
+    [
+      query,
+      selectedRoles,
+      conversation,
+      recency,
+      messageDepth,
+      threadCount,
+      lastDirection,
+      locationFilter,
+      dubaiSignalsOnly,
+      sort,
+    ],
   )
 
   const selected = selectedId ? (data.connections.find((person) => person.id === selectedId) ?? null) : null
@@ -718,6 +769,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     (conversation === 'all' ? 0 : 1) +
     (recency === 'all' ? 0 : 1) +
     (messageDepth === 'all' ? 0 : 1) +
+    (threadCount === 'all' ? 0 : 1) +
+    (lastDirection === 'all' ? 0 : 1) +
     (!privacyMode && locationFilter !== 'all' ? 1 : 0) +
     (!privacyMode && dubaiSignalsOnly ? 1 : 0)
   const activeQuickQuestion = QUICK_QUESTIONS.find(
@@ -728,6 +781,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
       conversation === question.conversation &&
       recency === question.recency &&
       messageDepth === question.messageDepth &&
+      threadCount === question.threadCount &&
+      lastDirection === question.lastDirection &&
       selectedRoles.size === question.roles.length &&
       question.roles.every((role) => selectedRoles.has(role)),
   )
@@ -798,6 +853,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     setConversation('all')
     setRecency('all')
     setMessageDepth('all')
+    setThreadCount('all')
+    setLastDirection('all')
     setLocationFilter('all')
     setDubaiSignalsOnly(false)
   }
@@ -818,6 +875,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     setConversation(question.conversation)
     setRecency(question.recency)
     setMessageDepth(question.messageDepth)
+    setThreadCount(question.threadCount)
+    setLastDirection(question.lastDirection)
     setLocationFilter('all')
     setDubaiSignalsOnly(false)
     setSort(question.sort)
@@ -1168,6 +1227,42 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
               </div>
             </FilterSection>
 
+            <FilterSection title="Conversation threads">
+              <div className="select-wrap">
+                <ListTree size={15} />
+                <select
+                  aria-label="Conversation threads"
+                  value={threadCount}
+                  onChange={(event) => setThreadCount(event.target.value as ThreadCountFilter)}
+                >
+                  {THREAD_COUNT_FILTER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label} · {threadCountCounts.get(option.value)?.toLocaleString() ?? '0'}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} />
+              </div>
+            </FilterSection>
+
+            <FilterSection title="Last message direction">
+              <div className="select-wrap">
+                <MessageCircle size={15} />
+                <select
+                  aria-label="Last message direction"
+                  value={lastDirection}
+                  onChange={(event) => setLastDirection(event.target.value as LastDirectionFilter)}
+                >
+                  {LAST_DIRECTION_FILTER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label} · {lastDirectionCounts.get(option.value)?.toLocaleString() ?? '0'}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} />
+              </div>
+            </FilterSection>
+
             <FilterSection title="Location annotation">
               {privacyMode ? (
                 <div className="privacy-filter-note">
@@ -1270,6 +1365,18 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
                 {messageDepth !== 'all' && (
                   <button type="button" onClick={() => setMessageDepth('all')}>
                     {MESSAGE_DEPTH_FILTER_LABELS[messageDepth]}
+                    <X size={12} />
+                  </button>
+                )}
+                {threadCount !== 'all' && (
+                  <button type="button" onClick={() => setThreadCount('all')}>
+                    {THREAD_COUNT_FILTER_LABELS[threadCount]}
+                    <X size={12} />
+                  </button>
+                )}
+                {lastDirection !== 'all' && (
+                  <button type="button" onClick={() => setLastDirection('all')}>
+                    {LAST_DIRECTION_FILTER_LABELS[lastDirection]}
                     <X size={12} />
                   </button>
                 )}
@@ -1604,7 +1711,7 @@ export function PersonRow({
             <strong>{conversationLabels[stats.status]}</strong>
             <small>
               {stats.messageCount
-                ? `${stats.messageCount} messages · ${formatDate(stats.lastMessageAt)}`
+                ? `${stats.messageCount} messages · ${stats.conversationCount} ${stats.conversationCount === 1 ? 'thread' : 'threads'} · last by ${stats.lastDirection === 'sent' ? 'you' : 'them'} · ${formatDate(stats.lastMessageAt)}`
                 : 'No URL match in archive'}
             </small>
           </span>

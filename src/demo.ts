@@ -136,10 +136,11 @@ function makeMessage(
   direction: MessageRecord['direction'],
   content: string,
   lastContactDays: number,
+  threadIndex: number,
 ): MessageRecord {
   const date = dateBefore(lastContactDays, step * 5)
   return {
-    conversationId: `demo-conversation-${String(index + 1).padStart(3, '0')}`,
+    conversationId: `demo-conversation-${String(index + 1).padStart(3, '0')}-${threadIndex + 1}`,
     from: direction === 'sent' ? SELF_NAME : person.fullName,
     to: direction === 'sent' ? person.fullName : SELF_NAME,
     date,
@@ -157,15 +158,19 @@ function messagesFor(person: Connection, index: number): MessageRecord[] {
   if (status === 3) return []
   const copy = messageCopy[index % messageCopy.length]
   const strongAndQuiet = status === 0 && index < 12
+  const twoWayOffset = Math.floor(index / 4)
   const directions: MessageRecord['direction'][] =
     status === 0
-      ? Array.from({ length: strongAndQuiet ? 12 : 4 }, (_, step) => (step % 2 ? 'received' : 'sent'))
+      ? Array.from({ length: strongAndQuiet ? 12 : 4 }, (_, step) => ((step + twoWayOffset) % 2 ? 'received' : 'sent'))
       : status === 1
         ? ['sent', 'sent']
         : ['received', 'received']
   const lastContactDays = strongAndQuiet ? 430 + index : 4 + index * 3
+  const threadCount = status === 0 ? (strongAndQuiet ? 3 : 2) : 1
   return directions
-    .map((direction, step) => makeMessage(person, index, step, direction, copy[step % copy.length], lastContactDays))
+    .map((direction, step) =>
+      makeMessage(person, index, step, direction, copy[step % copy.length], lastContactDays, step % threadCount),
+    )
     .sort((left, right) => (right.date?.valueOf() ?? 0) - (left.date?.valueOf() ?? 0))
 }
 

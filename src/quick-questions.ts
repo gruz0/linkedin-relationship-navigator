@@ -6,16 +6,31 @@ import {
   type RoleFilterCategory,
   statsFor,
 } from './data'
-import { type MessageDepthFilter, matchesRelationshipFilters, type RecencyFilter } from './relationship-filters'
+import {
+  type LastDirectionFilter,
+  type MessageDepthFilter,
+  matchesRelationshipFilters,
+  type RecencyFilter,
+  type ThreadCountFilter,
+} from './relationship-filters'
+
+type QuickQuestionConversation = ConversationStatus | 'all' | 'any'
 
 export type QuickQuestion = {
-  id: 'founders-spoken-with' | 'never-replied' | 'no-conversation-found' | 'strong-conversations-quiet'
+  id:
+    | 'founders-spoken-with'
+    | 'never-replied'
+    | 'no-conversation-found'
+    | 'strong-conversations-quiet'
+    | 'sent-last-message'
   title: string
   filterSummary: string
   roles: readonly RoleFilterCategory[]
-  conversation: ConversationStatus
+  conversation: QuickQuestionConversation
   recency: RecencyFilter
   messageDepth: MessageDepthFilter
+  threadCount: ThreadCountFilter
+  lastDirection: LastDirectionFilter
   sort: 'connected' | 'contacted'
 }
 
@@ -28,6 +43,8 @@ export const QUICK_QUESTIONS: readonly QuickQuestion[] = [
     conversation: 'two-way',
     recency: 'all',
     messageDepth: 'all',
+    threadCount: 'all',
+    lastDirection: 'all',
     sort: 'contacted',
   },
   {
@@ -38,6 +55,8 @@ export const QUICK_QUESTIONS: readonly QuickQuestion[] = [
     conversation: 'outbound',
     recency: 'all',
     messageDepth: 'all',
+    threadCount: 'all',
+    lastDirection: 'all',
     sort: 'contacted',
   },
   {
@@ -48,6 +67,8 @@ export const QUICK_QUESTIONS: readonly QuickQuestion[] = [
     conversation: 'none',
     recency: 'all',
     messageDepth: 'all',
+    threadCount: 'all',
+    lastDirection: 'all',
     sort: 'connected',
   },
   {
@@ -58,6 +79,20 @@ export const QUICK_QUESTIONS: readonly QuickQuestion[] = [
     conversation: 'two-way',
     recency: '1-year',
     messageDepth: '10-plus',
+    threadCount: 'all',
+    lastDirection: 'all',
+    sort: 'contacted',
+  },
+  {
+    id: 'sent-last-message',
+    title: 'Conversations where I sent the last message',
+    filterSummary: 'Any message · Last message by you',
+    roles: [],
+    conversation: 'any',
+    recency: 'all',
+    messageDepth: 'all',
+    threadCount: 'all',
+    lastDirection: 'sent',
     sort: 'contacted',
   },
 ]
@@ -67,8 +102,16 @@ function matchesQuickQuestion(data: ArchiveData, person: Connection, question: Q
   return (
     person.isIdentifiable &&
     matchesRoleFilters(person.roles, new Set(question.roles)) &&
-    stats.status === question.conversation &&
-    matchesRelationshipFilters(stats, question.recency, question.messageDepth, referenceDate)
+    (question.conversation === 'all' ||
+      (question.conversation === 'any' ? stats.status !== 'none' : stats.status === question.conversation)) &&
+    matchesRelationshipFilters(
+      stats,
+      question.recency,
+      question.messageDepth,
+      question.threadCount,
+      question.lastDirection,
+      referenceDate,
+    )
   )
 }
 
