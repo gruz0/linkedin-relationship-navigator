@@ -1168,7 +1168,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
         </section>
 
         <section className="explorer" ref={explorerRef}>
-          <aside className={`filter-panel ${filtersOpen ? 'mobile-open' : ''}`}>
+          <aside className={`filter-panel ${filtersOpen ? 'mobile-open' : ''}`} aria-label="Connection filters">
             <div className="filter-panel-heading">
               <span>
                 <SlidersHorizontal size={16} />
@@ -1178,159 +1178,170 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
             </div>
             <div className="filter-mobile-title">
               <strong>Filters</strong>
-              <button type="button" onClick={() => setFiltersOpen(false)}>
+              <button type="button" onClick={() => setFiltersOpen(false)} aria-label="Close filters">
                 <X size={18} />
               </button>
             </div>
-            <FilterSection title="Roles">
-              {privacyMode && (
-                <p className="privacy-role-note">
-                  <ShieldCheck size={13} /> Broad categories stay visible; raw titles are hidden.
-                </p>
-              )}
-              <div className="role-filter-list">
-                {ROLE_FILTER_CATEGORIES.map((role) => {
-                  const active = selectedRoles.has(role)
-                  const count = identifiable.filter((person) =>
-                    role === 'Other' ? person.roles.length === 0 : person.roles.includes(role),
-                  ).length
-                  return (
-                    <button
-                      type="button"
-                      key={role}
-                      className={active ? 'active' : ''}
-                      onClick={() => {
-                        const next = new Set(selectedRoles)
-                        if (active) next.delete(role)
-                        else next.add(role)
-                        setSelectedRoles(next)
-                      }}
-                    >
-                      <span>{role}</span>
-                      <span>{count}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </FilterSection>
-
-            <FilterSection title="Conversation">
-              <div className="select-wrap">
-                <MessageCircle size={15} />
-                <select
-                  aria-label="Conversation"
-                  value={conversation}
-                  onChange={(event) => setConversation(event.target.value as ConversationFilter)}
-                >
-                  {conversationFilterOptions.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label} · {conversationCounts[value].toLocaleString()}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} />
-              </div>
-            </FilterSection>
-
-            <FilterSection title="Last contact">
-              <div className="select-wrap">
-                <Clock3 size={15} />
-                <select
-                  aria-label="Last contact"
-                  value={recency}
-                  onChange={(event) => setRecency(event.target.value as RecencyFilter)}
-                >
-                  {RECENCY_FILTER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} · {recencyCounts.get(option.value)?.toLocaleString() ?? '0'}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} />
-              </div>
-            </FilterSection>
-
-            <FilterSection title="Message depth">
-              <div className="select-wrap">
-                <MessageCircle size={15} />
-                <select
-                  aria-label="Message depth"
-                  value={messageDepth}
-                  onChange={(event) => setMessageDepth(event.target.value as MessageDepthFilter)}
-                >
-                  {MESSAGE_DEPTH_FILTER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} · {messageDepthCounts.get(option.value)?.toLocaleString() ?? '0'}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} />
-              </div>
-            </FilterSection>
-
-            <FilterSection title="Conversation threads">
-              <div className="select-wrap">
-                <ListTree size={15} />
-                <select
-                  aria-label="Conversation threads"
-                  value={threadCount}
-                  onChange={(event) => setThreadCount(event.target.value as ThreadCountFilter)}
-                >
-                  {THREAD_COUNT_FILTER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} · {threadCountCounts.get(option.value)?.toLocaleString() ?? '0'}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} />
-              </div>
-            </FilterSection>
-
-            <FilterSection title="Last message direction">
-              <div className="select-wrap">
-                <MessageCircle size={15} />
-                <select
-                  aria-label="Last message direction"
-                  value={lastDirection}
-                  onChange={(event) => setLastDirection(event.target.value as LastDirectionFilter)}
-                >
-                  {LAST_DIRECTION_FILTER_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label} · {lastDirectionCounts.get(option.value)?.toLocaleString() ?? '0'}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} />
-              </div>
-            </FilterSection>
-
-            <FilterSection title="Location annotation">
-              {privacyMode ? (
-                <div className="privacy-filter-note">
-                  <EyeOff size={14} /> Hidden in Privacy mode
+            <div className="filter-panel-content">
+              <FilterSection title="Roles">
+                {privacyMode && (
+                  <p className="privacy-role-note">
+                    <ShieldCheck size={13} /> Broad categories stay visible; raw titles are hidden.
+                  </p>
+                )}
+                <div className="role-filter-list">
+                  {ROLE_FILTER_CATEGORIES.map((role) => {
+                    const active = selectedRoles.has(role)
+                    const count = identifiable.filter((person) =>
+                      role === 'Other' ? person.roles.length === 0 : person.roles.includes(role),
+                    ).length
+                    return (
+                      <button
+                        type="button"
+                        key={role}
+                        className={active ? 'active' : ''}
+                        onClick={() => {
+                          const next = new Set(selectedRoles)
+                          if (active) next.delete(role)
+                          else next.add(role)
+                          setSelectedRoles(next)
+                        }}
+                      >
+                        <span>{role}</span>
+                        <span>{count}</span>
+                      </button>
+                    )
+                  })}
                 </div>
-              ) : (
+              </FilterSection>
+
+              <FilterSection title="Conversation">
                 <div className="select-wrap">
-                  <MapPin size={15} />
-                  <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}>
-                    <option value="all">All locations</option>
-                    <option value="unknown">Not annotated</option>
-                    {cityOptions.map((city) => (
-                      <option key={city} value={city}>
-                        {city}
+                  <MessageCircle size={15} />
+                  <select
+                    aria-label="Conversation"
+                    value={conversation}
+                    onChange={(event) => setConversation(event.target.value as ConversationFilter)}
+                  >
+                    {conversationFilterOptions.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label} · {conversationCounts[value].toLocaleString()}
                       </option>
                     ))}
                   </select>
                   <ChevronDown size={14} />
                 </div>
-              )}
-            </FilterSection>
+              </FilterSection>
 
-            {activeFilterCount > 0 && (
-              <button type="button" className="clear-filter" onClick={clearFilters}>
-                Clear {activeFilterCount} filters
+              <FilterSection title="Last contact">
+                <div className="select-wrap">
+                  <Clock3 size={15} />
+                  <select
+                    aria-label="Last contact"
+                    value={recency}
+                    onChange={(event) => setRecency(event.target.value as RecencyFilter)}
+                  >
+                    {RECENCY_FILTER_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label} · {recencyCounts.get(option.value)?.toLocaleString() ?? '0'}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} />
+                </div>
+              </FilterSection>
+
+              <FilterSection title="Message depth">
+                <div className="select-wrap">
+                  <MessageCircle size={15} />
+                  <select
+                    aria-label="Message depth"
+                    value={messageDepth}
+                    onChange={(event) => setMessageDepth(event.target.value as MessageDepthFilter)}
+                  >
+                    {MESSAGE_DEPTH_FILTER_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label} · {messageDepthCounts.get(option.value)?.toLocaleString() ?? '0'}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} />
+                </div>
+              </FilterSection>
+
+              <FilterSection title="Conversation threads">
+                <div className="select-wrap">
+                  <ListTree size={15} />
+                  <select
+                    aria-label="Conversation threads"
+                    value={threadCount}
+                    onChange={(event) => setThreadCount(event.target.value as ThreadCountFilter)}
+                  >
+                    {THREAD_COUNT_FILTER_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label} · {threadCountCounts.get(option.value)?.toLocaleString() ?? '0'}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} />
+                </div>
+              </FilterSection>
+
+              <FilterSection title="Last message direction">
+                <div className="select-wrap">
+                  <MessageCircle size={15} />
+                  <select
+                    aria-label="Last message direction"
+                    value={lastDirection}
+                    onChange={(event) => setLastDirection(event.target.value as LastDirectionFilter)}
+                  >
+                    {LAST_DIRECTION_FILTER_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label} · {lastDirectionCounts.get(option.value)?.toLocaleString() ?? '0'}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} />
+                </div>
+              </FilterSection>
+
+              <FilterSection title="Location annotation">
+                {privacyMode ? (
+                  <div className="privacy-filter-note">
+                    <EyeOff size={14} /> Hidden in Privacy mode
+                  </div>
+                ) : (
+                  <div className="select-wrap">
+                    <MapPin size={15} />
+                    <select value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}>
+                      <option value="all">All locations</option>
+                      <option value="unknown">Not annotated</option>
+                      {cityOptions.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} />
+                  </div>
+                )}
+              </FilterSection>
+
+              {activeFilterCount > 0 && (
+                <button type="button" className="clear-filter" onClick={clearFilters}>
+                  Clear {activeFilterCount} filters
+                </button>
+              )}
+            </div>
+            <div className="filter-mobile-footer">
+              <button type="button" className="filter-results-button" onClick={() => setFiltersOpen(false)}>
+                View{' '}
+                <span aria-live="polite" aria-atomic="true">
+                  {filtered.length.toLocaleString()} {filtered.length === 1 ? 'result' : 'results'}
+                </span>
+                <ArrowUpRight size={16} aria-hidden="true" />
               </button>
-            )}
+            </div>
           </aside>
 
           <div className="results-panel">
