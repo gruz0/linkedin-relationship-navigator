@@ -1201,15 +1201,20 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
             </FilterSection>
 
             <FilterSection title="Conversation">
-              <div className="radio-list">
-                {conversationFilterOptions.map(([value, label]) => (
-                  <label key={value} aria-label={`${label}: ${conversationCounts[value].toLocaleString()}`}>
-                    <input type="radio" checked={conversation === value} onChange={() => setConversation(value)} />
-                    <span className="custom-radio" />
-                    <span className="radio-option-label">{label}</span>
-                    <span className="radio-option-count">{conversationCounts[value].toLocaleString()}</span>
-                  </label>
-                ))}
+              <div className="select-wrap">
+                <MessageCircle size={15} />
+                <select
+                  aria-label="Conversation"
+                  value={conversation}
+                  onChange={(event) => setConversation(event.target.value as ConversationFilter)}
+                >
+                  {conversationFilterOptions.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label} · {conversationCounts[value].toLocaleString()}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} />
               </div>
             </FilterSection>
 
