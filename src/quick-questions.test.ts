@@ -11,6 +11,8 @@ describe('quick questions', () => {
         conversation: 'two-way',
         recency: 'all',
         messageDepth: 'all',
+        threadCount: 'all',
+        lastDirection: 'all',
         sort: 'contacted',
       },
       {
@@ -19,6 +21,8 @@ describe('quick questions', () => {
         conversation: 'outbound',
         recency: 'all',
         messageDepth: 'all',
+        threadCount: 'all',
+        lastDirection: 'all',
         sort: 'contacted',
       },
       {
@@ -27,6 +31,8 @@ describe('quick questions', () => {
         conversation: 'none',
         recency: 'all',
         messageDepth: 'all',
+        threadCount: 'all',
+        lastDirection: 'all',
         sort: 'connected',
       },
       {
@@ -35,6 +41,18 @@ describe('quick questions', () => {
         conversation: 'two-way',
         recency: '1-year',
         messageDepth: '10-plus',
+        threadCount: 'all',
+        lastDirection: 'all',
+        sort: 'contacted',
+      },
+      {
+        id: 'sent-last-message',
+        roles: [],
+        conversation: 'any',
+        recency: 'all',
+        messageDepth: 'all',
+        threadCount: 'all',
+        lastDirection: 'sent',
         sort: 'contacted',
       },
     ])
@@ -54,6 +72,7 @@ describe('quick questions', () => {
       'never-replied': 12,
       'no-conversation-found': 12,
       'strong-conversations-quiet': 3,
+      'sent-last-message': 18,
     })
   })
 })
