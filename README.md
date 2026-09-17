@@ -42,6 +42,7 @@ See [LinkedIn’s current download instructions](https://www.linkedin.com/help/l
 - Filter relationships as two-way, outbound-only, inbound-only, or no message found
 - Filter conversations by recency, message depth, thread count, and who sent the latest archived message
 - View message counts, recency, threads, and conversation history
+- Open explicit HTTP(S) links from visible message history without interpreting message text as HTML
 - Add private locations, tags, and notes in browser storage
 - Export and restore annotations with a versioned workspace file
 - Mask identifying information with a privacy-first presentation mode

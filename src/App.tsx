@@ -51,6 +51,7 @@ import {
   statsFor,
 } from './data'
 import { createDemoData, createDemoWorkspace } from './demo'
+import { MessageContent } from './message-content'
 import { createPrivacyAliases, DEFAULT_PRIVACY_MODE, type PrivacyAliases, personPresentation } from './privacy'
 import { countQuickQuestionMatches, QUICK_QUESTIONS, type QuickQuestion } from './quick-questions'
 import {
@@ -1928,13 +1929,13 @@ export function PersonDrawer({
                       <time>{formatDate(message.date)}</time>
                     </header>
                     {!privacyMode && message.subject && <b>{message.subject}</b>}
-                    <p>
-                      {privacyMode
-                        ? 'Message content hidden in Privacy mode.'
-                        : message.content || 'Attachment or empty message'}
-                    </p>
+                    {privacyMode ? (
+                      <p>Message content hidden in Privacy mode.</p>
+                    ) : (
+                      <MessageContent content={message.content || 'Attachment or empty message'} />
+                    )}
                     {!privacyMode && message.attachmentUrl.startsWith('https://') && (
-                      <a href={message.attachmentUrl} target="_blank" rel="noreferrer">
+                      <a href={message.attachmentUrl} target="_blank" rel="nofollow noopener noreferrer">
                         Attachment link <ArrowUpRight size={12} />
                       </a>
                     )}
