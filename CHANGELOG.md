@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.0](https://github.com/gruz0/linkedin-relationship-navigator/compare/v0.5.0...v0.6.0) (2026-09-17)
+
+
+### Features
+
+* add mobile filter results footer ([#19](https://github.com/gruz0/linkedin-relationship-navigator/issues/19)) ([0077a82](https://github.com/gruz0/linkedin-relationship-navigator/commit/0077a826ed1e2049a9bbb3f2ec550f04a8bbd72f))
+* persist named shortlists ([#22](https://github.com/gruz0/linkedin-relationship-navigator/issues/22)) ([fad2931](https://github.com/gruz0/linkedin-relationship-navigator/commit/fad2931b50ee3745abc000a9646e9fc92ac3dd5e))
+* summarize hidden messages in privacy mode ([#21](https://github.com/gruz0/linkedin-relationship-navigator/issues/21)) ([aaa6191](https://github.com/gruz0/linkedin-relationship-navigator/commit/aaa6191153a619f223f3af249ca5ae48db0837d2))
+
 ## [0.5.0](https://github.com/gruz0/linkedin-relationship-navigator/compare/v0.4.0...v0.5.0) (2026-09-17)
 
 
