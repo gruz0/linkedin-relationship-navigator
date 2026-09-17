@@ -2051,46 +2051,64 @@ export function PersonDrawer({
                   <span>Last contact</span>
                 </div>
               </div>
-              <div className="message-list">
-                {messages.slice(0, messageLimit).map((message, index) => {
-                  const messageIsMatch = matchingMessageIndexSet.has(index)
-                  return (
-                    <article
-                      className={`message-card ${message.direction} ${messageIsMatch ? 'search-match' : ''}`}
-                      // biome-ignore lint/suspicious/noArrayIndexKey: LinkedIn messages have no unique ID; the index disambiguates identical exported rows.
-                      key={`${message.conversationId}-${message.dateRaw}-${index}`}
-                      ref={messageIsMatch && index === firstMatchingMessageIndex ? firstMessageMatchRef : undefined}
+              {privacyMode ? (
+                <div className="private-message-summary">
+                  <EyeOff size={20} />
+                  <div>
+                    <strong>
+                      {stats.messageCount.toLocaleString()} archived{' '}
+                      {stats.messageCount === 1 ? 'message is' : 'messages are'} hidden
+                    </strong>
+                    <span>
+                      Privacy mode replaces the conversation with this summary. Direction, thread count, and contact
+                      dates remain visible above.
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="message-list">
+                    {messages.slice(0, messageLimit).map((message, index) => {
+                      const messageIsMatch = matchingMessageIndexSet.has(index)
+                      return (
+                        <article
+                          className={`message-card ${message.direction} ${messageIsMatch ? 'search-match' : ''}`}
+                          // biome-ignore lint/suspicious/noArrayIndexKey: LinkedIn messages have no unique ID; the index disambiguates identical exported rows.
+                          key={`${message.conversationId}-${message.dateRaw}-${index}`}
+                          ref={messageIsMatch && index === firstMatchingMessageIndex ? firstMessageMatchRef : undefined}
+                        >
+                          <header>
+                            <strong>{message.direction === 'sent' ? 'You' : presentation.name}</strong>
+                            <time>{formatDate(message.date)}</time>
+                          </header>
+                          {message.subject && (
+                            <b>
+                              <HighlightedText text={message.subject} query={messageSearchQuery} />
+                            </b>
+                          )}
+                          <MessageContent
+                            content={message.content || 'Attachment or empty message'}
+                            highlight={messageSearchQuery}
+                          />
+                          {message.attachmentUrl.startsWith('https://') && (
+                            <a href={message.attachmentUrl} target="_blank" rel="nofollow noopener noreferrer">
+                              Attachment link <ArrowUpRight size={12} />
+                            </a>
+                          )}
+                        </article>
+                      )
+                    })}
+                  </div>
+                  {messageLimit < messages.length && (
+                    <button
+                      type="button"
+                      className="show-messages"
+                      onClick={() => setMessageLimit((value) => value + 20)}
                     >
-                      <header>
-                        <strong>{message.direction === 'sent' ? 'You' : presentation.name}</strong>
-                        <time>{formatDate(message.date)}</time>
-                      </header>
-                      {!privacyMode && message.subject && (
-                        <b>
-                          <HighlightedText text={message.subject} query={messageSearchQuery} />
-                        </b>
-                      )}
-                      {privacyMode ? (
-                        <p>Message content hidden in Privacy mode.</p>
-                      ) : (
-                        <MessageContent
-                          content={message.content || 'Attachment or empty message'}
-                          highlight={messageSearchQuery}
-                        />
-                      )}
-                      {!privacyMode && message.attachmentUrl.startsWith('https://') && (
-                        <a href={message.attachmentUrl} target="_blank" rel="nofollow noopener noreferrer">
-                          Attachment link <ArrowUpRight size={12} />
-                        </a>
-                      )}
-                    </article>
-                  )
-                })}
-              </div>
-              {messageLimit < messages.length && (
-                <button type="button" className="show-messages" onClick={() => setMessageLimit((value) => value + 20)}>
-                  Show earlier messages
-                </button>
+                      Show earlier messages
+                    </button>
+                  )}
+                </>
               )}
             </>
           ) : (
