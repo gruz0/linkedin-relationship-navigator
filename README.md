@@ -44,7 +44,7 @@ See [LinkedIn’s current download instructions](https://www.linkedin.com/help/l
 - View message counts, recency, threads, and conversation history
 - Open explicit HTTP(S) links from visible message history without interpreting message text as HTML
 - Add private locations, tags, and notes in browser storage
-- Export and restore annotations with a versioned workspace file
+- Save named shortlists and export or restore them with annotations in a versioned workspace file
 - Mask identifying information with a privacy-first presentation mode
 - Identify company names that mention Dubai without treating them as a person's location
 
@@ -86,7 +86,7 @@ The ZIP archive is parsed in the browser and is never uploaded by this applicati
 
 LinkedIn does not include connection locations in this export. “No messages found” means no matching profile URL was present in the exported message history; it is not proof that two people have never spoken elsewhere.
 
-Workspace exports contain annotations and basic source-archive metadata. They do not contain LinkedIn message bodies.
+Workspace exports contain annotations, named shortlists with profile identifiers, and basic source-archive metadata. They do not contain LinkedIn message bodies.
 
 ## Run locally
 

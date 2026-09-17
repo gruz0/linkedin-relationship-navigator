@@ -2,6 +2,7 @@ import {
   ArrowDownUp,
   ArrowLeft,
   ArrowUpRight,
+  BookmarkPlus,
   BriefcaseBusiness,
   Building2,
   CalendarDays,
@@ -22,6 +23,7 @@ import {
   LockKeyhole,
   MapPin,
   MessageCircle,
+  Pencil,
   Search,
   ShieldCheck,
   SlidersHorizontal,
@@ -95,12 +97,16 @@ import {
   type AnnotationDraft,
   attachArchive,
   countAnnotations,
+  createSavedShortlist,
   createWorkspace,
+  deleteSavedShortlist,
   LEGACY_LOCATION_STORAGE_KEY,
   mergeWorkspaces,
   migrateLegacyLocations,
   type PersonAnnotation,
   parseWorkspaceFile,
+  renameSavedShortlist,
+  type SavedShortlist,
   serializeWorkspace,
   updatePersonAnnotation,
   WORKSPACE_STORAGE_KEY,
@@ -593,6 +599,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   const [workspaceNotice, setWorkspaceNotice] = useState<{ tone: 'success' | 'error'; message: string } | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const workspaceInputRef = useRef<HTMLInputElement>(null)
+  const workspaceMenuRef = useRef<HTMLDetailsElement>(null)
   const explorerRef = useRef<HTMLElement>(null)
   const referenceDate = useMemo(() => new Date(), [])
   const overlayOpen = exportOpen || selectedId !== null || filtersOpen
@@ -771,6 +778,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     [data, privacyAliases, privacyMode, shortlistedPeople, workspace],
   )
   const allFilteredSelected = filtered.length > 0 && filtered.every((person) => shortlistIds.has(person.id))
+  const workspaceArtifactCount = countAnnotations(workspace) + workspace.savedShortlists.length
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Reset result batching when any result-shaping control changes.
   useEffect(
@@ -855,7 +863,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
       persistWorkspace(next)
       setWorkspaceNotice({
         tone: 'success',
-        message: `Workspace imported with ${countAnnotations(imported).toLocaleString()} annotated people.`,
+        message: `Workspace imported with ${countAnnotations(imported).toLocaleString()} annotated people and ${imported.savedShortlists.length.toLocaleString()} saved shortlists.`,
       })
     } catch (cause) {
       setWorkspaceNotice({
@@ -869,14 +877,15 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
 
   const clearWorkspace = () => {
     const warning = isDemo
-      ? 'Clear all locations, tags, and notes from this demo session?'
-      : 'Clear all locations, tags, and notes saved in this browser? Export the workspace first if you need a backup.'
+      ? 'Clear all annotations and saved shortlists from this demo session?'
+      : 'Clear all annotations and saved shortlists from this browser? Export the workspace first if you need a backup.'
     if (!window.confirm(warning)) return
     const next = createWorkspace(data)
     persistWorkspace(next)
+    setShortlistIds(new Set())
     setWorkspaceNotice({
       tone: 'success',
-      message: isDemo ? 'Demo annotations cleared for this session.' : 'Local annotations cleared.',
+      message: isDemo ? 'Demo workspace cleared for this session.' : 'Local workspace cleared.',
     })
   }
 
@@ -942,6 +951,63 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     setExportOpen(true)
   }
 
+  const saveCurrentShortlist = () => {
+    const defaultName = `Shortlist ${new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(new Date())}`
+    const name = window.prompt('Name this shortlist', defaultName)
+    if (name === null) return
+    try {
+      const next = createSavedShortlist(workspace, name, shortlistIds)
+      persistWorkspace(next)
+      setWorkspaceNotice({
+        tone: 'success',
+        message: `Saved “${next.savedShortlists.at(-1)?.name}” with ${shortlistIds.size.toLocaleString()} people.`,
+      })
+    } catch (cause) {
+      setWorkspaceNotice({
+        tone: 'error',
+        message: cause instanceof Error ? cause.message : 'The shortlist could not be saved.',
+      })
+    }
+  }
+
+  const openSavedShortlist = (shortlist: SavedShortlist) => {
+    const availableIds = new Set(identifiable.map((person) => person.id))
+    const selectedIds = shortlist.personIds.filter((id) => availableIds.has(id))
+    const missingCount = shortlist.personIds.length - selectedIds.length
+    setShortlistIds(new Set(selectedIds))
+    workspaceMenuRef.current?.removeAttribute('open')
+    setWorkspaceNotice({
+      tone: 'success',
+      message: missingCount
+        ? `Opened “${shortlist.name}”: ${selectedIds.length.toLocaleString()} available, ${missingCount.toLocaleString()} not present in this archive.`
+        : `Opened “${shortlist.name}” with ${selectedIds.length.toLocaleString()} people.`,
+    })
+  }
+
+  const renameShortlist = (shortlist: SavedShortlist) => {
+    const name = window.prompt('Rename this shortlist', shortlist.name)
+    if (name === null || name.trim() === shortlist.name) return
+    try {
+      const next = renameSavedShortlist(workspace, shortlist.id, name)
+      persistWorkspace(next)
+      setWorkspaceNotice({ tone: 'success', message: `Renamed shortlist to “${name.trim()}”.` })
+    } catch (cause) {
+      setWorkspaceNotice({
+        tone: 'error',
+        message: cause instanceof Error ? cause.message : 'The shortlist could not be renamed.',
+      })
+    }
+  }
+
+  const removeSavedShortlist = (shortlist: SavedShortlist) => {
+    if (
+      !window.confirm(`Delete the saved shortlist “${shortlist.name}”? This will not delete any people or annotations.`)
+    )
+      return
+    persistWorkspace(deleteSavedShortlist(workspace, shortlist.id))
+    setWorkspaceNotice({ tone: 'success', message: `Deleted “${shortlist.name}”.` })
+  }
+
   const downloadShortlist = (format: 'csv' | 'markdown') => {
     if (format === 'csv') {
       downloadTextFile(
@@ -995,20 +1061,59 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
               {privacyMode ? <EyeOff size={16} /> : <Eye size={16} />}
               {privacyMode ? 'Privacy on' : 'Privacy mode'}
             </button>
-            <details className="workspace-menu">
+            <details className="workspace-menu" ref={workspaceMenuRef}>
               <summary>
                 <StickyNote size={16} /> <span className="workspace-label">Workspace</span>
-                {countAnnotations(workspace) > 0 && (
-                  <span className="workspace-count">{countAnnotations(workspace)}</span>
-                )}
+                {workspaceArtifactCount > 0 && <span className="workspace-count">{workspaceArtifactCount}</span>}
                 <ChevronDown size={13} />
               </summary>
               <div className="workspace-menu-panel">
+                {workspace.savedShortlists.length > 0 && (
+                  <section className="saved-shortlists" aria-labelledby="saved-shortlists-heading">
+                    <header>
+                      <strong id="saved-shortlists-heading">Saved shortlists</strong>
+                      <small>Open a list as the current selection</small>
+                    </header>
+                    <ul>
+                      {workspace.savedShortlists.map((shortlist) => (
+                        <li key={shortlist.id}>
+                          <button
+                            type="button"
+                            className="saved-shortlist-open"
+                            onClick={() => openSavedShortlist(shortlist)}
+                          >
+                            <ListTree size={15} />
+                            <span>
+                              <strong>{shortlist.name}</strong>
+                              <small>{shortlist.personIds.length.toLocaleString()} people</small>
+                            </span>
+                          </button>
+                          <div className="saved-shortlist-actions">
+                            <button
+                              type="button"
+                              onClick={() => renameShortlist(shortlist)}
+                              aria-label={`Rename ${shortlist.name}`}
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeSavedShortlist(shortlist)}
+                              aria-label={`Delete ${shortlist.name}`}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
                 <button type="button" onClick={() => downloadWorkspace(workspace)}>
                   <FileDown size={16} />
                   <span>
                     <strong>Export workspace</strong>
-                    <small>Download annotations as JSON</small>
+                    <small>Download annotations and saved lists as JSON</small>
                   </span>
                 </button>
                 <button type="button" onClick={() => workspaceInputRef.current?.click()}>
@@ -1021,8 +1126,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
                 <button type="button" className="danger" onClick={clearWorkspace}>
                   <Trash2 size={16} />
                   <span>
-                    <strong>Clear annotations</strong>
-                    <small>Remove local locations, tags, and notes</small>
+                    <strong>Clear workspace</strong>
+                    <small>Remove local annotations and saved lists</small>
                   </span>
                 </button>
               </div>
@@ -1549,6 +1654,9 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
           <span>
             <strong>{shortlistIds.size.toLocaleString()}</strong> selected
           </span>
+          <button type="button" className="shortlist-save" onClick={saveCurrentShortlist}>
+            <BookmarkPlus size={14} /> Save
+          </button>
           <button type="button" className="shortlist-review" onClick={openExport}>
             Review &amp; export
           </button>

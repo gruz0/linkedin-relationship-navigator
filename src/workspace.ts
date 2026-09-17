@@ -1,7 +1,8 @@
 import { type ArchiveData, normalizeProfileUrl } from './data'
 
 const WORKSPACE_FORMAT = 'common-ground-workspace'
-const WORKSPACE_SCHEMA_VERSION = 1
+const WORKSPACE_SCHEMA_VERSION = 2
+const MAX_SAVED_SHORTLISTS = 100
 export const WORKSPACE_STORAGE_KEY = 'common-ground.workspace.v1'
 export const LEGACY_LOCATION_STORAGE_KEY = 'common-ground.locations.v1'
 
@@ -27,6 +28,14 @@ interface SourceArchiveMetadata {
   conversationCount: number
 }
 
+export interface SavedShortlist {
+  id: string
+  name: string
+  personIds: string[]
+  createdAt: string
+  updatedAt: string
+}
+
 export interface WorkspaceFile {
   format: typeof WORKSPACE_FORMAT
   schemaVersion: typeof WORKSPACE_SCHEMA_VERSION
@@ -34,6 +43,7 @@ export interface WorkspaceFile {
   updatedAt: string
   sourceArchives: SourceArchiveMetadata[]
   people: Record<string, PersonAnnotation>
+  savedShortlists: SavedShortlist[]
 }
 
 export interface AnnotationDraft {
@@ -87,6 +97,7 @@ export function createWorkspace(data: ArchiveData, now?: Date): WorkspaceFile {
     updatedAt: timestamp,
     sourceArchives: [archiveMetadata(data, timestamp)],
     people: {},
+    savedShortlists: [],
   }
 }
 
@@ -169,6 +180,42 @@ function parseArchive(value: unknown): SourceArchiveMetadata {
   }
 }
 
+function validPersonId(value: string) {
+  return /^linkedin\.com\/in\/[a-z0-9_%.-]+$/i.test(value)
+}
+
+function parseSavedShortlist(value: unknown): SavedShortlist {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'string' ||
+    !/^[a-z0-9][a-z0-9._-]{0,99}$/i.test(value.id) ||
+    typeof value.name !== 'string' ||
+    !value.name.trim() ||
+    value.name.length > 100 ||
+    !Array.isArray(value.personIds) ||
+    value.personIds.length === 0 ||
+    value.personIds.length > 10_000 ||
+    !value.personIds.every((id) => typeof id === 'string') ||
+    !validIso(value.createdAt) ||
+    !validIso(value.updatedAt)
+  ) {
+    throw new Error('Workspace saved shortlist is invalid.')
+  }
+
+  const personIds = [...new Set(value.personIds.map((id) => normalizeProfileUrl(id)))]
+  if (!personIds.every(validPersonId)) {
+    throw new Error('Workspace saved shortlist contains an invalid profile identifier.')
+  }
+
+  return {
+    id: value.id,
+    name: cleanText(value.name, 100),
+    personIds,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt,
+  }
+}
+
 export function parseWorkspaceFile(text: string): WorkspaceFile {
   let value: unknown
   try {
@@ -179,24 +226,33 @@ export function parseWorkspaceFile(text: string): WorkspaceFile {
   if (!isRecord(value) || value.format !== WORKSPACE_FORMAT) {
     throw new Error('This is not a Common Ground workspace file.')
   }
-  if (value.schemaVersion !== WORKSPACE_SCHEMA_VERSION) {
+  if (value.schemaVersion !== 1 && value.schemaVersion !== WORKSPACE_SCHEMA_VERSION) {
     throw new Error(`Workspace version ${String(value.schemaVersion)} is not supported.`)
   }
   if (!validIso(value.createdAt) || !validIso(value.updatedAt)) {
     throw new Error('Workspace timestamps are invalid.')
   }
-  if (!Array.isArray(value.sourceArchives) || !isRecord(value.people)) {
+  if (
+    !Array.isArray(value.sourceArchives) ||
+    !isRecord(value.people) ||
+    (value.schemaVersion === WORKSPACE_SCHEMA_VERSION &&
+      (!Array.isArray(value.savedShortlists) || value.savedShortlists.length > MAX_SAVED_SHORTLISTS))
+  ) {
     throw new Error('Workspace structure is incomplete.')
   }
 
   const people: Record<string, PersonAnnotation> = Object.create(null) as Record<string, PersonAnnotation>
   for (const [rawId, rawAnnotation] of Object.entries(value.people)) {
     const id = normalizeProfileUrl(rawId)
-    if (!/^linkedin\.com\/in\/[a-z0-9_%.-]+$/i.test(id)) {
+    if (!validPersonId(id)) {
       throw new Error(`Workspace contains an invalid profile identifier: ${rawId}`)
     }
     const annotation = parsePersonAnnotation(rawAnnotation)
     if (Object.keys(annotation).length) people[id] = annotation
+  }
+  const savedShortlists = value.schemaVersion === 1 ? [] : (value.savedShortlists as unknown[]).map(parseSavedShortlist)
+  if (new Set(savedShortlists.map((shortlist) => shortlist.id)).size !== savedShortlists.length) {
+    throw new Error('Workspace contains duplicate saved shortlist identifiers.')
   }
 
   return {
@@ -206,6 +262,7 @@ export function parseWorkspaceFile(text: string): WorkspaceFile {
     updatedAt: value.updatedAt,
     sourceArchives: value.sourceArchives.map(parseArchive).slice(0, 100),
     people,
+    savedShortlists,
   }
 }
 
@@ -220,7 +277,7 @@ export function updatePersonAnnotation(
   now?: Date,
 ): WorkspaceFile {
   const id = normalizeProfileUrl(personId)
-  if (!/^linkedin\.com\/in\/[a-z0-9_%.-]+$/i.test(id)) {
+  if (!validPersonId(id)) {
     throw new Error('Annotations require a valid LinkedIn profile URL.')
   }
   const timestamp = nowIso(now)
@@ -252,7 +309,7 @@ export function migrateLegacyLocations(workspace: WorkspaceFile, raw: string | n
   const people = { ...workspace.people }
   for (const [rawId, rawLocation] of Object.entries(values)) {
     const id = normalizeProfileUrl(rawId)
-    if (!/^linkedin\.com\/in\/[a-z0-9_%.-]+$/i.test(id) || typeof rawLocation !== 'string') continue
+    if (!validPersonId(id) || typeof rawLocation !== 'string') continue
     const location = cleanText(rawLocation, 500)
     if (location && !people[id]?.location) {
       people[id] = {
@@ -281,10 +338,66 @@ export function mergeWorkspaces(
     updatedAt: timestamp,
     sourceArchives: [...archiveMap.values()].slice(-100),
     people: { ...current.people, ...imported.people },
+    savedShortlists: mergeSavedShortlists(current.savedShortlists, imported.savedShortlists),
   }
   return attachArchive(merged, data, now)
 }
 
 export function countAnnotations(workspace: WorkspaceFile) {
   return Object.keys(workspace.people).length
+}
+
+function mergeSavedShortlists(current: SavedShortlist[], imported: SavedShortlist[]) {
+  const shortlists = new Map(current.map((shortlist) => [shortlist.id, shortlist]))
+  for (const shortlist of imported) shortlists.set(shortlist.id, shortlist)
+  if (shortlists.size > MAX_SAVED_SHORTLISTS) {
+    throw new Error(`A workspace can contain at most ${MAX_SAVED_SHORTLISTS} saved shortlists.`)
+  }
+  return [...shortlists.values()]
+}
+
+export function createSavedShortlist(
+  workspace: WorkspaceFile,
+  name: string,
+  personIds: Iterable<string>,
+  now?: Date,
+  id: string = crypto.randomUUID(),
+): WorkspaceFile {
+  if (workspace.savedShortlists.length >= MAX_SAVED_SHORTLISTS) {
+    throw new Error(`A workspace can contain at most ${MAX_SAVED_SHORTLISTS} saved shortlists.`)
+  }
+  const timestamp = nowIso(now)
+  const shortlist = parseSavedShortlist({
+    id,
+    name,
+    personIds: [...personIds],
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  })
+  if (workspace.savedShortlists.some((item) => item.id === shortlist.id)) {
+    throw new Error('A saved shortlist with this identifier already exists.')
+  }
+  return {
+    ...workspace,
+    updatedAt: timestamp,
+    savedShortlists: [...workspace.savedShortlists, shortlist],
+  }
+}
+
+export function renameSavedShortlist(workspace: WorkspaceFile, id: string, name: string, now?: Date): WorkspaceFile {
+  const timestamp = nowIso(now)
+  let found = false
+  const savedShortlists = workspace.savedShortlists.map((shortlist) => {
+    if (shortlist.id !== id) return shortlist
+    found = true
+    return parseSavedShortlist({ ...shortlist, name, updatedAt: timestamp })
+  })
+  if (!found) throw new Error('The saved shortlist no longer exists.')
+  return { ...workspace, updatedAt: timestamp, savedShortlists }
+}
+
+export function deleteSavedShortlist(workspace: WorkspaceFile, id: string, now?: Date): WorkspaceFile {
+  const savedShortlists = workspace.savedShortlists.filter((shortlist) => shortlist.id !== id)
+  if (savedShortlists.length === workspace.savedShortlists.length) return workspace
+  return { ...workspace, updatedAt: nowIso(now), savedShortlists }
 }
