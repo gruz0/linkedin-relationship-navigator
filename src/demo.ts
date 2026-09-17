@@ -106,7 +106,7 @@ const positions = [
 
 const messageCopy = [
   [
-    'It was great meeting at the product roundtable. Would you be open to comparing notes next week?',
+    'It was great meeting at the product roundtable. Notes are at https://example.com/common-ground-demo. Would you be open to comparing notes next week?',
     'Absolutely. Tuesday afternoon would work well for me.',
     'Perfect, I will send a short agenda before then.',
     'Sounds good. Looking forward to it.',
