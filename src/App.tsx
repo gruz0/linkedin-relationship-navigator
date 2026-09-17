@@ -1334,128 +1334,130 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
           </aside>
 
           <div className="results-panel">
-            <div className="results-heading">
-              <div>
-                <p className="overline">Network explorer</p>
-                <h2>Connections</h2>
+            <section className="results-controls" aria-label="Result controls">
+              <div className="results-heading">
+                <div>
+                  <p className="overline">Network explorer</p>
+                  <h2>Connections</h2>
+                </div>
+                <span>
+                  <strong>{filtered.length.toLocaleString()}</strong> of {identifiable.length.toLocaleString()}
+                </span>
               </div>
-              <span>
-                <strong>{filtered.length.toLocaleString()}</strong> of {identifiable.length.toLocaleString()}
-              </span>
-            </div>
-            <div className="toolbar">
-              <label className="search-box">
-                <Search size={18} />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder={
-                    privacyMode ? 'Search aliases or normalized roles' : 'Search people, context, or messages'
-                  }
-                />
-                {query && (
-                  <button type="button" onClick={() => setQuery('')}>
-                    <X size={15} />
-                  </button>
-                )}
-              </label>
-              <button type="button" className="mobile-filter-button" onClick={() => setFiltersOpen(true)}>
-                <SlidersHorizontal size={17} /> Filters {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
-              </button>
-              <label className="sort-control">
-                <ArrowDownUp size={16} />
-                <select value={sort} onChange={(event) => setSort(event.target.value as SortMode)}>
-                  <option value="connected">Recently connected</option>
-                  <option value="contacted">Recently contacted</option>
-                  <option value="messages">Most messages</option>
-                  <option value="name">Name A–Z</option>
-                </select>
-                <ChevronDown size={14} />
-              </label>
-              <label className="batch-control">
-                <select
-                  aria-label="Results per batch"
-                  value={batchSize}
-                  onChange={(event) => {
-                    const nextBatchSize = parseResultBatchSize(event.target.value)
-                    setBatchSize(nextBatchSize)
-                    setVisibleCount(nextBatchSize)
-                  }}
-                >
-                  {RESULT_BATCH_SIZES.map((size) => (
-                    <option key={size} value={size}>
-                      {size} at a time
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} />
-              </label>
-            </div>
-
-            {activeFilterCount > 0 && (
-              <fieldset className="active-filters" aria-label="Active filters">
-                <span className="active-filters-label">Active</span>
-                {[...selectedRoles].map((role) => (
-                  <button
-                    type="button"
-                    key={role}
-                    onClick={() => {
-                      const next = new Set(selectedRoles)
-                      next.delete(role)
-                      setSelectedRoles(next)
+              <div className="toolbar">
+                <label className="search-box">
+                  <Search size={18} />
+                  <input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={
+                      privacyMode ? 'Search aliases or normalized roles' : 'Search people, context, or messages'
+                    }
+                  />
+                  {query && (
+                    <button type="button" onClick={() => setQuery('')}>
+                      <X size={15} />
+                    </button>
+                  )}
+                </label>
+                <button type="button" className="mobile-filter-button" onClick={() => setFiltersOpen(true)}>
+                  <SlidersHorizontal size={17} /> Filters {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+                </button>
+                <label className="sort-control">
+                  <ArrowDownUp size={16} />
+                  <select value={sort} onChange={(event) => setSort(event.target.value as SortMode)}>
+                    <option value="connected">Recently connected</option>
+                    <option value="contacted">Recently contacted</option>
+                    <option value="messages">Most messages</option>
+                    <option value="name">Name A–Z</option>
+                  </select>
+                  <ChevronDown size={14} />
+                </label>
+                <label className="batch-control">
+                  <select
+                    aria-label="Results per batch"
+                    value={batchSize}
+                    onChange={(event) => {
+                      const nextBatchSize = parseResultBatchSize(event.target.value)
+                      setBatchSize(nextBatchSize)
+                      setVisibleCount(nextBatchSize)
                     }}
                   >
-                    {role}
-                    <X size={12} />
+                    {RESULT_BATCH_SIZES.map((size) => (
+                      <option key={size} value={size}>
+                        {size} at a time
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} />
+                </label>
+              </div>
+
+              {activeFilterCount > 0 && (
+                <fieldset className="active-filters" aria-label="Active filters">
+                  <span className="active-filters-label">Active</span>
+                  {[...selectedRoles].map((role) => (
+                    <button
+                      type="button"
+                      key={role}
+                      onClick={() => {
+                        const next = new Set(selectedRoles)
+                        next.delete(role)
+                        setSelectedRoles(next)
+                      }}
+                    >
+                      {role}
+                      <X size={12} />
+                    </button>
+                  ))}
+                  {conversation !== 'all' && (
+                    <button type="button" onClick={() => setConversation('all')}>
+                      {conversationFilterLabels[conversation]}
+                      <X size={12} />
+                    </button>
+                  )}
+                  {recency !== 'all' && (
+                    <button type="button" onClick={() => setRecency('all')}>
+                      {RECENCY_FILTER_LABELS[recency]}
+                      <X size={12} />
+                    </button>
+                  )}
+                  {messageDepth !== 'all' && (
+                    <button type="button" onClick={() => setMessageDepth('all')}>
+                      {MESSAGE_DEPTH_FILTER_LABELS[messageDepth]}
+                      <X size={12} />
+                    </button>
+                  )}
+                  {threadCount !== 'all' && (
+                    <button type="button" onClick={() => setThreadCount('all')}>
+                      {THREAD_COUNT_FILTER_LABELS[threadCount]}
+                      <X size={12} />
+                    </button>
+                  )}
+                  {lastDirection !== 'all' && (
+                    <button type="button" onClick={() => setLastDirection('all')}>
+                      {LAST_DIRECTION_FILTER_LABELS[lastDirection]}
+                      <X size={12} />
+                    </button>
+                  )}
+                  {!privacyMode && locationFilter !== 'all' && (
+                    <button type="button" onClick={() => setLocationFilter('all')}>
+                      {locationFilter === 'unknown' ? 'Location: Not annotated' : `Location: ${locationFilter}`}
+                      <X size={12} />
+                    </button>
+                  )}
+                  {!privacyMode && dubaiSignalsOnly && (
+                    <button type="button" onClick={() => setDubaiSignalsOnly(false)}>
+                      Dubai company hints
+                      <X size={12} />
+                    </button>
+                  )}
+                  <button type="button" className="clear-all-filters" onClick={clearFilters}>
+                    Clear all
                   </button>
-                ))}
-                {conversation !== 'all' && (
-                  <button type="button" onClick={() => setConversation('all')}>
-                    {conversationFilterLabels[conversation]}
-                    <X size={12} />
-                  </button>
-                )}
-                {recency !== 'all' && (
-                  <button type="button" onClick={() => setRecency('all')}>
-                    {RECENCY_FILTER_LABELS[recency]}
-                    <X size={12} />
-                  </button>
-                )}
-                {messageDepth !== 'all' && (
-                  <button type="button" onClick={() => setMessageDepth('all')}>
-                    {MESSAGE_DEPTH_FILTER_LABELS[messageDepth]}
-                    <X size={12} />
-                  </button>
-                )}
-                {threadCount !== 'all' && (
-                  <button type="button" onClick={() => setThreadCount('all')}>
-                    {THREAD_COUNT_FILTER_LABELS[threadCount]}
-                    <X size={12} />
-                  </button>
-                )}
-                {lastDirection !== 'all' && (
-                  <button type="button" onClick={() => setLastDirection('all')}>
-                    {LAST_DIRECTION_FILTER_LABELS[lastDirection]}
-                    <X size={12} />
-                  </button>
-                )}
-                {!privacyMode && locationFilter !== 'all' && (
-                  <button type="button" onClick={() => setLocationFilter('all')}>
-                    {locationFilter === 'unknown' ? 'Location: Not annotated' : `Location: ${locationFilter}`}
-                    <X size={12} />
-                  </button>
-                )}
-                {!privacyMode && dubaiSignalsOnly && (
-                  <button type="button" onClick={() => setDubaiSignalsOnly(false)}>
-                    Dubai company hints
-                    <X size={12} />
-                  </button>
-                )}
-                <button type="button" className="clear-all-filters" onClick={clearFilters}>
-                  Clear all
-                </button>
-              </fieldset>
-            )}
+                </fieldset>
+              )}
+            </section>
 
             {filtered.length > 0 && (
               <div className="selection-tools">
