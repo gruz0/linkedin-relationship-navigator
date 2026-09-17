@@ -92,12 +92,14 @@ describe('Privacy mode UI', () => {
         annotation={annotation}
         privacyMode
         privacyAliases={aliases}
+        messageMatchCount={2}
         onClick={() => undefined}
       />,
     )
 
     expect(html).toContain('Person 001')
     expect(html).toContain('Company 001')
+    expect(html).not.toContain('matching messages')
     for (const value of sensitiveValues) expect(html).not.toContain(value)
   })
 
@@ -109,6 +111,7 @@ describe('Privacy mode UI', () => {
         annotation={annotation}
         privacyMode
         privacyAliases={aliases}
+        messageSearchQuery="private email"
         onAnnotationChange={() => undefined}
         onClose={() => undefined}
       />,
@@ -118,5 +121,36 @@ describe('Privacy mode UI', () => {
     expect(html).toContain('Message content hidden in Privacy mode.')
     expect(html).not.toContain('href=')
     for (const value of sensitiveValues) expect(html).not.toContain(value)
+  })
+
+  it('shows message-search evidence and highlights only when Privacy mode is off', () => {
+    const rowHtml = renderToStaticMarkup(
+      <PersonRow
+        person={person}
+        data={data}
+        annotation={annotation}
+        privacyMode={false}
+        privacyAliases={aliases}
+        messageMatchCount={1}
+        onClick={() => undefined}
+      />,
+    )
+    const drawerHtml = renderToStaticMarkup(
+      <PersonDrawer
+        person={person}
+        data={data}
+        annotation={annotation}
+        privacyMode={false}
+        privacyAliases={aliases}
+        messageSearchQuery="private email"
+        onAnnotationChange={() => undefined}
+        onClose={() => undefined}
+      />,
+    )
+
+    expect(rowHtml).toContain('1 matching message')
+    expect(drawerHtml).toContain('1 matching message')
+    expect(drawerHtml).toContain('<mark>private email</mark>')
+    expect(drawerHtml).toContain('Jump to first match')
   })
 })

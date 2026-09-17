@@ -51,7 +51,8 @@ import {
   statsFor,
 } from './data'
 import { createDemoData, createDemoWorkspace } from './demo'
-import { MessageContent } from './message-content'
+import { HighlightedText, MessageContent } from './message-content'
+import { countMessageMatches, messageMatchesSearch, normalizeSearchQuery, textMatchesSearch } from './message-search'
 import { createPrivacyAliases, DEFAULT_PRIVACY_MODE, type PrivacyAliases, personPresentation } from './privacy'
 import { countQuickQuestionMatches, QUICK_QUESTIONS, type QuickQuestion } from './quick-questions'
 import {
@@ -596,6 +597,16 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
 
   const identifiable = useMemo(() => data.connections.filter((person) => person.isIdentifiable), [data])
   const privacyAliases = useMemo(() => createPrivacyAliases(identifiable), [identifiable])
+  const searchNeedle = useMemo(() => normalizeSearchQuery(query), [query])
+  const messageMatchCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    if (privacyMode || !searchNeedle) return counts
+    for (const [personId, messages] of data.messagesByPerson) {
+      const count = countMessageMatches(messages, searchNeedle)
+      if (count > 0) counts.set(personId, count)
+    }
+    return counts
+  }, [data.messagesByPerson, privacyMode, searchNeedle])
   const conversationCounts = useMemo(() => conversationCountsFor(data), [data])
   const quickQuestionCounts = useMemo(
     () =>
@@ -658,7 +669,6 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   )
 
   const filtered = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase()
     const people = identifiable.filter((person) => {
       const stats = statsFor(data, person.id)
       const annotation = workspace.people[person.id]
@@ -674,7 +684,10 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
             annotation?.tags?.value.join(' ') ?? '',
             annotation?.notes?.value ?? '',
           ]
-      const matchesQuery = !needle || searchValues.some((value) => value.toLocaleLowerCase().includes(needle))
+      const matchesQuery =
+        !searchNeedle ||
+        searchValues.some((value) => textMatchesSearch(value, searchNeedle)) ||
+        (messageMatchCounts.get(person.id) ?? 0) > 0
       const matchesRole = matchesRoleFilters(person.roles, selectedRoles)
       const matchesConversation =
         conversation === 'all' || (conversation === 'any' ? stats.status !== 'none' : stats.status === conversation)
@@ -721,12 +734,13 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     identifiable,
     locationFilter,
     lastDirection,
+    messageMatchCounts,
     messageDepth,
     privacyAliases,
     privacyMode,
-    query,
     recency,
     referenceDate,
+    searchNeedle,
     selectedRoles,
     sort,
     threadCount,
@@ -1127,7 +1141,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
             </strong>
             <span>
               {privacyMode
-                ? 'Search uses masked aliases and normalized roles only. Turn off Privacy mode to search real names, companies, locations, tags, or notes. Source files and workspace data are unchanged.'
+                ? 'Search uses masked aliases and normalized roles only. Turn off Privacy mode to search real names, companies, locations, tags, notes, or message text. Source files and workspace data are unchanged.'
                 : isDemo
                   ? 'They illustrate context you can add yourself; LinkedIn does not supply locations for connections in this export.'
                   : 'Add a city when reviewing a person. Company-name hints are available separately and are never treated as locations.'}
@@ -1317,7 +1331,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={
-                    privacyMode ? 'Search aliases or normalized roles' : 'Search person, company, role, or city'
+                    privacyMode ? 'Search aliases or normalized roles' : 'Search people, context, or messages'
                   }
                 />
                 {query && (
@@ -1435,6 +1449,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
                   annotation={workspace.people[person.id]}
                   privacyMode={privacyMode}
                   privacyAliases={privacyAliases}
+                  messageMatchCount={messageMatchCounts.get(person.id) ?? 0}
                   shortlisted={shortlistIds.has(person.id)}
                   onShortlistChange={(selected) => setPersonShortlisted(person.id, selected)}
                   onClick={() => setSelectedId(person.id)}
@@ -1499,6 +1514,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
           annotation={workspace.people[selected.id]}
           privacyMode={privacyMode}
           privacyAliases={privacyAliases}
+          messageSearchQuery={privacyMode ? '' : query}
           onAnnotationChange={(draft) => updateAnnotation(selected.id, draft)}
           onClose={() => setSelectedId(null)}
         />
@@ -1653,6 +1669,7 @@ export function PersonRow({
   annotation,
   privacyMode,
   privacyAliases,
+  messageMatchCount = 0,
   shortlisted = false,
   onShortlistChange,
   onClick,
@@ -1662,6 +1679,7 @@ export function PersonRow({
   annotation?: PersonAnnotation
   privacyMode: boolean
   privacyAliases: PrivacyAliases
+  messageMatchCount?: number
   shortlisted?: boolean
   onShortlistChange?: (selected: boolean) => void
   onClick: () => void
@@ -1722,6 +1740,11 @@ export function PersonRow({
                 ? `${stats.messageCount} messages · ${stats.conversationCount} ${stats.conversationCount === 1 ? 'thread' : 'threads'} · last by ${stats.lastDirection === 'sent' ? 'you' : 'them'} · ${formatDate(stats.lastMessageAt)}`
                 : 'No URL match in archive'}
             </small>
+            {!privacyMode && messageMatchCount > 0 && (
+              <small className="message-match-evidence">
+                <Search size={11} /> {messageMatchCount} matching {messageMatchCount === 1 ? 'message' : 'messages'}
+              </small>
+            )}
           </span>
         </span>
         <span className="date-cell">{formatDate(person.connectedOn, person.connectedOnRaw)}</span>
@@ -1737,6 +1760,7 @@ export function PersonDrawer({
   annotation,
   privacyMode,
   privacyAliases,
+  messageSearchQuery = '',
   onAnnotationChange,
   onClose,
 }: {
@@ -1745,6 +1769,7 @@ export function PersonDrawer({
   annotation?: PersonAnnotation
   privacyMode: boolean
   privacyAliases: PrivacyAliases
+  messageSearchQuery?: string
   onAnnotationChange: (draft: AnnotationDraft) => void
   onClose: () => void
 }) {
@@ -1753,6 +1778,20 @@ export function PersonDrawer({
   const location = annotation?.location?.value ?? ''
   const tags = annotation?.tags?.value ?? []
   const notes = annotation?.notes?.value ?? ''
+  const normalizedMessageSearchQuery = privacyMode ? '' : normalizeSearchQuery(messageSearchQuery)
+  const matchingMessageIndexes = useMemo(
+    () =>
+      normalizedMessageSearchQuery
+        ? messages.flatMap((message, index) =>
+            messageMatchesSearch(message, normalizedMessageSearchQuery) ? [index] : [],
+          )
+        : [],
+    [messages, normalizedMessageSearchQuery],
+  )
+  const matchingMessageIndexSet = useMemo(() => new Set(matchingMessageIndexes), [matchingMessageIndexes])
+  const firstMatchingMessageIndex = matchingMessageIndexes[0] ?? -1
+  const firstMessageMatchRef = useRef<HTMLElement>(null)
+  const [messageJumpPending, setMessageJumpPending] = useState(false)
   const [draftLocation, setDraftLocation] = useState(location)
   const [draftTags, setDraftTags] = useState(tags.join(', '))
   const [draftNotes, setDraftNotes] = useState(notes)
@@ -1783,6 +1822,25 @@ export function PersonDrawer({
     window.addEventListener('keydown', close)
     return () => window.removeEventListener('keydown', close)
   }, [onClose])
+
+  useEffect(() => {
+    if (!messageJumpPending || !firstMessageMatchRef.current) return
+    const frame = window.requestAnimationFrame(() => {
+      firstMessageMatchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setMessageJumpPending(false)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [messageJumpPending])
+
+  const jumpToFirstMessageMatch = () => {
+    if (firstMatchingMessageIndex < 0) return
+    if (firstMatchingMessageIndex < messageLimit && firstMessageMatchRef.current) {
+      firstMessageMatchRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+    setMessageJumpPending(true)
+    setMessageLimit(firstMatchingMessageIndex + 1)
+  }
 
   return (
     <div className="drawer-layer">
@@ -1899,6 +1957,18 @@ export function PersonDrawer({
           </div>
           {stats.messageCount > 0 ? (
             <>
+              {matchingMessageIndexes.length > 0 && (
+                <button type="button" className="message-search-summary" onClick={jumpToFirstMessageMatch}>
+                  <Search size={15} />
+                  <span>
+                    <strong>
+                      {matchingMessageIndexes.length} matching{' '}
+                      {matchingMessageIndexes.length === 1 ? 'message' : 'messages'}
+                    </strong>
+                    Jump to first match
+                  </span>
+                </button>
+              )}
               <div className="conversation-metrics">
                 <div>
                   <strong>{stats.sentCount}</strong>
@@ -1918,29 +1988,40 @@ export function PersonDrawer({
                 </div>
               </div>
               <div className="message-list">
-                {messages.slice(0, messageLimit).map((message, index) => (
-                  <article
-                    className={`message-card ${message.direction}`}
-                    // biome-ignore lint/suspicious/noArrayIndexKey: LinkedIn messages have no unique ID; the index disambiguates identical exported rows.
-                    key={`${message.conversationId}-${message.dateRaw}-${index}`}
-                  >
-                    <header>
-                      <strong>{message.direction === 'sent' ? 'You' : presentation.name}</strong>
-                      <time>{formatDate(message.date)}</time>
-                    </header>
-                    {!privacyMode && message.subject && <b>{message.subject}</b>}
-                    {privacyMode ? (
-                      <p>Message content hidden in Privacy mode.</p>
-                    ) : (
-                      <MessageContent content={message.content || 'Attachment or empty message'} />
-                    )}
-                    {!privacyMode && message.attachmentUrl.startsWith('https://') && (
-                      <a href={message.attachmentUrl} target="_blank" rel="nofollow noopener noreferrer">
-                        Attachment link <ArrowUpRight size={12} />
-                      </a>
-                    )}
-                  </article>
-                ))}
+                {messages.slice(0, messageLimit).map((message, index) => {
+                  const messageIsMatch = matchingMessageIndexSet.has(index)
+                  return (
+                    <article
+                      className={`message-card ${message.direction} ${messageIsMatch ? 'search-match' : ''}`}
+                      // biome-ignore lint/suspicious/noArrayIndexKey: LinkedIn messages have no unique ID; the index disambiguates identical exported rows.
+                      key={`${message.conversationId}-${message.dateRaw}-${index}`}
+                      ref={messageIsMatch && index === firstMatchingMessageIndex ? firstMessageMatchRef : undefined}
+                    >
+                      <header>
+                        <strong>{message.direction === 'sent' ? 'You' : presentation.name}</strong>
+                        <time>{formatDate(message.date)}</time>
+                      </header>
+                      {!privacyMode && message.subject && (
+                        <b>
+                          <HighlightedText text={message.subject} query={messageSearchQuery} />
+                        </b>
+                      )}
+                      {privacyMode ? (
+                        <p>Message content hidden in Privacy mode.</p>
+                      ) : (
+                        <MessageContent
+                          content={message.content || 'Attachment or empty message'}
+                          highlight={messageSearchQuery}
+                        />
+                      )}
+                      {!privacyMode && message.attachmentUrl.startsWith('https://') && (
+                        <a href={message.attachmentUrl} target="_blank" rel="nofollow noopener noreferrer">
+                          Attachment link <ArrowUpRight size={12} />
+                        </a>
+                      )}
+                    </article>
+                  )
+                })}
               </div>
               {messageLimit < messages.length && (
                 <button type="button" className="show-messages" onClick={() => setMessageLimit((value) => value + 20)}>

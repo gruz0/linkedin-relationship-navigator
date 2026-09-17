@@ -168,9 +168,13 @@ function messagesFor(person: Connection, index: number): MessageRecord[] {
   const lastContactDays = strongAndQuiet ? 430 + index : 4 + index * 3
   const threadCount = status === 0 ? (strongAndQuiet ? 3 : 2) : 1
   return directions
-    .map((direction, step) =>
-      makeMessage(person, index, step, direction, copy[step % copy.length], lastContactDays, step % threadCount),
-    )
+    .map((direction, step) => {
+      const content =
+        index === 0 && step === directions.length - 1
+          ? 'The earliest thread mentioned a privacy prototype for archived relationship data.'
+          : copy[step % copy.length]
+      return makeMessage(person, index, step, direction, content, lastContactDays, step % threadCount)
+    })
     .sort((left, right) => (right.date?.valueOf() ?? 0) - (left.date?.valueOf() ?? 0))
 }
 
