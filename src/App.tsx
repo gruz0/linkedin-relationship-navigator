@@ -72,6 +72,7 @@ import {
   THREAD_COUNT_FILTER_OPTIONS,
   type ThreadCountFilter,
 } from './relationship-filters'
+import { lockDocumentScroll } from './scroll-lock'
 import {
   buildShortlistRows,
   type ShortlistColumn,
@@ -585,6 +586,12 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   const workspaceInputRef = useRef<HTMLInputElement>(null)
   const explorerRef = useRef<HTMLElement>(null)
   const referenceDate = useMemo(() => new Date(), [])
+  const overlayOpen = exportOpen || selectedId !== null || filtersOpen
+
+  useEffect(() => {
+    if (!overlayOpen) return
+    return lockDocumentScroll()
+  }, [overlayOpen])
 
   const identifiable = useMemo(() => data.connections.filter((person) => person.isIdentifiable), [data])
   const privacyAliases = useMemo(() => createPrivacyAliases(identifiable), [identifiable])
