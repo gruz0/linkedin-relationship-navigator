@@ -48,6 +48,10 @@ See [LinkedIn’s current download instructions](https://www.linkedin.com/help/l
 - Mask identifying information with a privacy-first presentation mode
 - Identify company names that mention Dubai without treating them as a person's location
 
+## Testing planned features
+
+Common Ground is testing interest in snapshot comparisons, follow-up reminders, and encrypted backup at a planned $39/year. **Get Started** offers the fictional demo, free browser use, and a waitlist. A second waitlist invitation appears after a real export is opened. These paid features are still planned; joining the waitlist does not start a subscription.
+
 ## Proven on a real network
 
 ### Which founders have I actually spoken with?
@@ -84,7 +88,7 @@ The full role and conversation filter set is available from a dedicated mobile p
 
 The ZIP archive is parsed in the browser and is never uploaded by this application. Privacy mode changes only what is rendered; it does not modify the source archive or workspace exports and is not a substitute for sanitizing files before sharing them.
 
-The deployed app uses cookie-free Umami analytics for page visits and a few fixed actions. These events contain no archive or workspace content.
+The app is configured to use cookie-free Umami analytics on its production host for page visits and a few fixed actions. These events contain no archive or workspace content.
 
 LinkedIn does not include connection locations in this export. “No messages found” means no matching profile URL was present in the exported message history; it is not proof that two people have never spoken elsewhere.
 
