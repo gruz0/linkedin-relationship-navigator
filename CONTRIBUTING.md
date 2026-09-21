@@ -23,6 +23,7 @@ The paid-feature waitlist is an experiment. Both entry points link to one Tally 
 - The published form URL is in `src/validation.ts`. Keep a hidden field named `source` in the form. The landing and real-workspace links send `source=landing` and `source=workspace` respectively. Keep the price in both offers aligned with the form.
 - Umami loads only on the production site at `gruz0.github.io`, using the configured website ID in `src/analytics.ts`. Development and local preview builds do not send events.
 - The experiment counts `get_started_hero`, `get_started_bottom`, `demo_selected`, `free_selected`, `real_export_loaded`, and waitlist clicks from each source. `real_export_loaded` fires only after the ZIP is parsed successfully. Tally submissions are measured in Tally by the `source` field. No archive contents, names, counts, or workspace data are sent as event properties.
+- Use submitted Tally rows for waitlist conversion, not waitlist-click events. Compare `source=workspace` submissions with successful real exports; review `source=landing` submissions separately. Check one real submission from each source after release before interpreting the numbers.
 
 ## Project scripts
 
