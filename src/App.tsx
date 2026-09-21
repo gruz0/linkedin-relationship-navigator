@@ -41,6 +41,7 @@ import linkedInDataPrivacyScreenshot from '../screenshots/linkedin-export-01-dat
 import linkedInRequestArchiveScreenshot from '../screenshots/linkedin-export-02-request-archive.png'
 import networkOverviewScreenshot from '../screenshots/network-overview-privacy.png'
 import relationshipDetailScreenshot from '../screenshots/relationship-detail-privacy.png'
+import { trackValidationEvent } from './analytics'
 import {
   type ArchiveData,
   type Connection,
@@ -93,6 +94,7 @@ import {
   shortlistToCsv,
   shortlistToMarkdown,
 } from './shortlist'
+import { type WaitlistSource, waitlistUrl } from './validation'
 import {
   type AnnotationDraft,
   attachArchive,
@@ -182,11 +184,70 @@ function linkedInUrl(profileUrl: string) {
   return /^linkedin\.com\/in\/[a-z0-9_%.-]+$/i.test(profileUrl) ? `https://www.${profileUrl}` : ''
 }
 
+function hasStoredWorkspace() {
+  try {
+    return typeof localStorage !== 'undefined' && Boolean(localStorage.getItem(WORKSPACE_STORAGE_KEY))
+  } catch {
+    return false
+  }
+}
+
+function WaitlistAction({ source }: { source: WaitlistSource }) {
+  const onOpen = () =>
+    trackValidationEvent(source === 'landing' ? 'waitlist_opened_landing' : 'waitlist_opened_workspace')
+
+  return (
+    <div className="waitlist-action">
+      <a
+        className="waitlist-link"
+        href={waitlistUrl(source)}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onOpen}
+      >
+        Join the waitlist <ArrowUpRight size={16} />
+      </a>
+    </div>
+  )
+}
+
 function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<void>; onDemo: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const uploadButtonRef = useRef<HTMLButtonElement>(null)
+  const entryDialogRef = useRef<HTMLDialogElement>(null)
+  const [view, setView] = useState<'welcome' | 'choices' | 'upload'>(() =>
+    hasStoredWorkspace() ? 'upload' : 'welcome',
+  )
+  const modalOpen = view !== 'welcome'
   const [dragging, setDragging] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!modalOpen) return
+    const dialog = entryDialogRef.current
+    if (!dialog) return
+    dialog.showModal()
+    const unlockScroll = lockDocumentScroll()
+    return () => {
+      if (dialog.open) dialog.close()
+      unlockScroll()
+    }
+  }, [modalOpen])
+
+  useEffect(() => {
+    if (view === 'upload') uploadButtonRef.current?.focus()
+  }, [view])
+
+  const openDemo = () => {
+    trackValidationEvent('demo_selected')
+    onDemo()
+  }
+
+  const openChoices = (placement: 'hero' | 'bottom') => {
+    trackValidationEvent(placement === 'hero' ? 'get_started_hero' : 'get_started_bottom')
+    setView('choices')
+  }
 
   const load = async (file?: File) => {
     if (!file) return
@@ -194,6 +255,7 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
     setError('')
     try {
       await onImport(file)
+      trackValidationEvent('real_export_loaded')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The archive could not be opened.')
       setLoading(false)
@@ -206,7 +268,7 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
         <div className="landing-nav-frame">
           <Brand />
           <span className="privacy-pill">
-            <LockKeyhole size={14} /> Your data stays here
+            <LockKeyhole size={14} /> Your archive stays here
           </span>
         </div>
       </nav>
@@ -219,66 +281,134 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
             you can see who is relevant, whether you have actually spoken, and the context before reaching out—all
             inside your browser.
           </p>
-          <section
-            className="outcome-path"
-            aria-label="Find the right person, understand the relationship, and decide who to contact"
-          >
-            <strong>Find the right person</strong>
-            <span aria-hidden="true">→</span>
-            <strong>Understand the relationship</strong>
-            <span aria-hidden="true">→</span>
-            <strong>Decide who to contact</strong>
-          </section>
         </div>
 
-        <section
-          className={`drop-card ${dragging ? 'is-dragging' : ''}`}
-          aria-label="LinkedIn archive upload"
-          onDragEnter={(event) => {
-            event.preventDefault()
-            setDragging(true)
-          }}
-          onDragOver={(event) => event.preventDefault()}
-          onDragLeave={(event) => {
-            event.preventDefault()
-            setDragging(false)
-          }}
-          onDrop={(event) => {
-            event.preventDefault()
-            setDragging(false)
-            void load(event.dataTransfer.files[0])
-          }}
-        >
-          <div className="upload-icon">
-            <UploadCloud size={28} />
-          </div>
-          <h2>{loading ? 'Reading your archive…' : 'Open your LinkedIn export'}</h2>
-          <p>Choose the complete ZIP you downloaded from LinkedIn.</p>
-          <button type="button" className="primary-button" onClick={() => inputRef.current?.click()} disabled={loading}>
-            {loading ? <LoaderCircle className="spin" size={18} /> : <Download size={18} />}
-            {loading ? 'Preparing workspace' : 'Choose ZIP archive'}
+        <section className="start-panel" aria-labelledby="start-heading">
+          <p className="overline">Private relationship workspace</p>
+          <h2 id="start-heading">Put your existing network to work.</h2>
+          <ul className="outcome-list">
+            <li>Find the right person</li>
+            <li>Understand the relationship</li>
+            <li>Decide who to contact</li>
+          </ul>
+          <button type="button" className="primary-button" onClick={() => openChoices('hero')}>
+            Get Started <ArrowUpRight size={17} />
           </button>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".zip,application/zip"
-            hidden
-            onChange={(event) => void load(event.target.files?.[0])}
-          />
-          <span className="drop-hint">or drop it here · nothing leaves this browser</span>
-          <div className="import-choice">
-            <span>or</span>
-          </div>
-          <button type="button" className="demo-button" onClick={onDemo} disabled={loading}>
-            <Sparkles size={17} /> Explore demo workspace
-          </button>
-          {error && (
-            <div className="import-error">
-              <CircleAlert size={16} /> {error}
-            </div>
-          )}
         </section>
       </section>
+
+      <dialog
+        ref={entryDialogRef}
+        className={`entry-dialog ${view === 'choices' ? 'entry-dialog-choices' : 'entry-dialog-upload'}`}
+        aria-labelledby={view === 'choices' ? 'choices-heading' : view === 'upload' ? 'upload-heading' : undefined}
+        onClose={() => setView('welcome')}
+      >
+        <button
+          type="button"
+          className="entry-dialog-close"
+          aria-label="Close dialog"
+          onClick={() => entryDialogRef.current?.close()}
+        >
+          <X size={18} />
+        </button>
+
+        {view === 'choices' && (
+          <section className="start-panel choice-panel" aria-labelledby="choices-heading">
+            <p className="overline">Choose your path</p>
+            <h2 id="choices-heading">Start where you are.</h2>
+            <div className="start-options">
+              <button type="button" className="start-option" onClick={openDemo}>
+                <Sparkles size={20} />
+                <span>
+                  <strong>Try demo data</strong>
+                  <small>Explore a fictional network now.</small>
+                </span>
+                <ArrowUpRight size={16} />
+              </button>
+              <button
+                type="button"
+                className="start-option"
+                onClick={() => {
+                  trackValidationEvent('free_selected')
+                  setView('upload')
+                }}
+              >
+                <UploadCloud size={20} />
+                <span>
+                  <strong>Use in browser for free</strong>
+                  <small>Open your own ZIP. Your data stays on this device.</small>
+                </span>
+                <ArrowUpRight size={16} />
+              </button>
+              <div className="start-option paid-option">
+                <ShieldCheck size={20} />
+                <div>
+                  <strong>See what changed in your network</strong>
+                  <small>Planned: job changes since your last export, follow-up reminders, and encrypted backup.</small>
+                  <span className="planned-price">Planned at $39/year</span>
+                  <WaitlistAction source="landing" />
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {view === 'upload' && (
+          <section
+            className={`drop-card ${dragging ? 'is-dragging' : ''}`}
+            aria-label="LinkedIn archive upload"
+            onDragEnter={(event) => {
+              event.preventDefault()
+              setDragging(true)
+            }}
+            onDragOver={(event) => event.preventDefault()}
+            onDragLeave={(event) => {
+              event.preventDefault()
+              setDragging(false)
+            }}
+            onDrop={(event) => {
+              event.preventDefault()
+              setDragging(false)
+              void load(event.dataTransfer.files[0])
+            }}
+          >
+            <div className="upload-icon">
+              <UploadCloud size={28} />
+            </div>
+            <h2 id="upload-heading">{loading ? 'Reading your archive…' : 'Open your LinkedIn export'}</h2>
+            <p>Choose the complete ZIP you downloaded from LinkedIn.</p>
+            <button
+              ref={uploadButtonRef}
+              type="button"
+              className="primary-button"
+              onClick={() => inputRef.current?.click()}
+              disabled={loading}
+            >
+              {loading ? <LoaderCircle className="spin" size={18} /> : <Download size={18} />}
+              {loading ? 'Preparing workspace' : 'Choose ZIP archive'}
+            </button>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".zip,application/zip"
+              hidden
+              onChange={(event) => void load(event.target.files?.[0])}
+            />
+            <span className="drop-hint">or drop it here · your archive stays in this browser</span>
+            <div className="import-choice">
+              <span>or</span>
+            </div>
+            <button type="button" className="demo-button" onClick={openDemo} disabled={loading}>
+              <Sparkles size={17} /> Explore demo workspace
+            </button>
+            {error && (
+              <div className="import-error">
+                <CircleAlert size={16} /> {error}
+              </div>
+            )}
+          </section>
+        )}
+      </dialog>
 
       <section className="use-cases" aria-labelledby="use-cases-heading">
         <header>
@@ -533,6 +663,11 @@ function ImportScreen({ onImport, onDemo }: { onImport: (file: File) => Promise<
           </figure>
         </div>
       </section>
+      <section className="closing-cta" aria-label="Get started with Common Ground">
+        <button type="button" className="primary-button" onClick={() => openChoices('bottom')}>
+          Get Started <ArrowUpRight size={17} />
+        </button>
+      </section>
       <CreatorFooter />
     </main>
   )
@@ -562,6 +697,7 @@ function CreatorFooter() {
           </a>
         </strong>
         <small>Small, focused tools for messy real-world workflows.</small>
+        <small>Cookie-free analytics counts visits and button choices. It never receives archive content.</small>
       </div>
       <nav aria-label="Creator links">
         <a href={CREATOR_GITHUB_URL} target="_blank" rel="noreferrer">
@@ -1209,6 +1345,17 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
           />
           <StatCard icon={<Inbox />} value={twoWayCount} label="Two-way" detail="Both sent and received" tone="green" />
         </section>
+
+        {!isDemo && (
+          <aside className="workspace-waitlist" aria-label="Planned Common Ground features">
+            <div>
+              <p className="overline">What comes next</p>
+              <strong>See who changed jobs since your last export.</strong>
+              <span>Snapshot comparisons, follow-up reminders, and encrypted backup are planned at $39/year.</span>
+            </div>
+            <WaitlistAction source="workspace" />
+          </aside>
+        )}
 
         <section className="quick-questions" aria-labelledby="quick-questions-heading">
           <header>

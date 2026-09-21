@@ -84,6 +84,8 @@ The full role and conversation filter set is available from a dedicated mobile p
 
 The ZIP archive is parsed in the browser and is never uploaded by this application. Privacy mode changes only what is rendered; it does not modify the source archive or workspace exports and is not a substitute for sanitizing files before sharing them.
 
+The deployed app uses cookie-free Umami analytics for page visits and a few fixed actions. These events contain no archive or workspace content.
+
 LinkedIn does not include connection locations in this export. “No messages found” means no matching profile URL was present in the exported message history; it is not proof that two people have never spoken elsewhere.
 
 Workspace exports contain annotations, named shortlists with profile identifiers, and basic source-archive metadata. They do not contain LinkedIn message bodies.
@@ -95,7 +97,7 @@ bun install
 bun run dev
 ```
 
-Open the local address printed by Vite, then choose a complete ZIP downloaded from LinkedIn or open the fictional demo workspace.
+Open the local address printed by Vite, select **Get Started**, then choose a complete ZIP downloaded from LinkedIn or open the fictional demo workspace.
 
 ## Contributing
 
