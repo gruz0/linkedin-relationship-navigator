@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/gruz0/linkedin-relationship-navigator/compare/v0.6.0...v0.7.0) (2026-09-21)
+
+
+### Features
+
+* add monetization validation flow ([#23](https://github.com/gruz0/linkedin-relationship-navigator/issues/23)) ([0ee3a62](https://github.com/gruz0/linkedin-relationship-navigator/commit/0ee3a623354628f8b1d002bd12f36d0220abc2c6))
+
 ## [0.6.0](https://github.com/gruz0/linkedin-relationship-navigator/compare/v0.5.0...v0.6.0) (2026-09-17)
 
 
