@@ -7,11 +7,13 @@ import { createDemoData, createDemoWorkspace } from './demo'
 describe('fictional demo workspace', () => {
   afterEach(() => vi.unstubAllGlobals())
 
-  it('offers archive upload and demo exploration as separate landing actions', () => {
+  it('shows the first-time entry screen without opening the archive picker', () => {
     const html = renderToStaticMarkup(createElement(App))
 
-    expect(html).toContain('Choose ZIP archive')
-    expect(html).toContain('Explore demo workspace')
+    expect(html).toContain('Get Started')
+    expect(html).toContain('<dialog')
+    expect(html).not.toContain('Choose ZIP archive')
+    expect(html).not.toContain('Explore fictional data, open your own export for free')
     expect(html).toContain('You may already know someone who can help.')
     expect(html).toContain('LinkedIn helps you find a person.')
     expect(html).toContain('Which founders have I actually spoken with?')
@@ -38,9 +40,18 @@ describe('fictional demo workspace', () => {
     expect(html).not.toContain('Browser only')
     expect(html).not.toContain('Useful when')
     expect(html).not.toContain('Inside Common Ground')
-    expect(html).toContain('type="file"')
+    expect(html).not.toContain('type="file"')
     expect(html).toContain('https://www.linkedin.com/in/alexanderkadyrov/')
     expect(html).toContain('https://github.com/gruz0')
+  })
+
+  it('sends returning workspace owners straight to the archive picker', () => {
+    vi.stubGlobal('localStorage', { getItem: () => '{"format":"common-ground-workspace"}' })
+    const html = renderToStaticMarkup(createElement(App))
+
+    expect(html).toContain('Choose ZIP archive')
+    expect(html).toContain('type="file"')
+    expect(html).toContain('aria-labelledby="upload-heading"')
   })
 
   it('builds a deterministic and varied relationship dataset', () => {
@@ -91,6 +102,9 @@ describe('fictional demo workspace', () => {
     )
 
     expect(html).toContain('3 relevant files used · 3 present')
+    expect(html).toContain('See who changed jobs since your last export.')
+    expect(html).toContain('planned at $39/year')
+    expect(html).toContain('Join the waitlist')
     expect(html).toContain('aria-label="Conversation"')
     expect(html).toContain('All connections · 48')
     expect(html).toContain('Any message · 36')
