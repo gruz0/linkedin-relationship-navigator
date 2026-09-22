@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/gruz0/linkedin-relationship-navigator/compare/v0.7.0...v0.8.0) (2026-09-22)
+
+
+### Features
+
+* copy person context for AI ([#26](https://github.com/gruz0/linkedin-relationship-navigator/issues/26)) ([b24ff96](https://github.com/gruz0/linkedin-relationship-navigator/commit/b24ff96bc4d355135574b893a78fc633b9b5f434))
+
 ## [0.7.0](https://github.com/gruz0/linkedin-relationship-navigator/compare/v0.6.0...v0.7.0) (2026-09-21)
 
 
