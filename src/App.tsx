@@ -12,6 +12,7 @@ import {
   Clock3,
   Code2,
   ContactRound,
+  Copy,
   Download,
   Eye,
   EyeOff,
@@ -56,6 +57,7 @@ import {
 import { createDemoData, createDemoWorkspace } from './demo'
 import { HighlightedText, MessageContent } from './message-content'
 import { countMessageMatches, messageMatchesSearch, normalizeSearchQuery, textMatchesSearch } from './message-search'
+import { personCardToCopyText } from './person-card-copy'
 import { createPrivacyAliases, DEFAULT_PRIVACY_MODE, type PrivacyAliases, personPresentation } from './privacy'
 import { countQuickQuestionMatches, QUICK_QUESTIONS, type QuickQuestion } from './quick-questions'
 import {
@@ -2115,6 +2117,7 @@ export function PersonDrawer({
   const [draftTags, setDraftTags] = useState(tags.join(', '))
   const [draftNotes, setDraftNotes] = useState(notes)
   const [messageLimit, setMessageLimit] = useState(8)
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'profile' | 'messages' | 'error'>('idle')
   const presentation = personPresentation(person, privacyAliases, privacyMode)
   const externalUrl = privacyMode ? '' : linkedInUrl(person.profileUrl)
   const parsedDraftTags = [
@@ -2161,6 +2164,17 @@ export function PersonDrawer({
     setMessageLimit(firstMatchingMessageIndex + 1)
   }
 
+  const copyPersonCard = async (includeMessages = false) => {
+    try {
+      await navigator.clipboard.writeText(
+        personCardToCopyText({ person, presentation, stats, messages, annotation, privacyMode, includeMessages }),
+      )
+      setCopyStatus(includeMessages ? 'messages' : 'profile')
+    } catch {
+      setCopyStatus('error')
+    }
+  }
+
   return (
     <div className="drawer-layer">
       <button type="button" className="drawer-backdrop" onClick={onClose} aria-label="Close relationship details" />
@@ -2171,7 +2185,6 @@ export function PersonDrawer({
         <div className="drawer-profile">
           <div className="avatar avatar-large">{presentation.avatar}</div>
           <div>
-            <p className="overline">Connection</p>
             <h2>{presentation.name}</h2>
             <p>
               {presentation.position}
@@ -2197,7 +2210,40 @@ export function PersonDrawer({
           <span>
             <CalendarDays size={15} /> Connected {formatDate(person.connectedOn, person.connectedOnRaw)}
           </span>
+          <div className="drawer-copy-buttons">
+            <button type="button" className="drawer-copy" onClick={() => void copyPersonCard()}>
+              {copyStatus === 'profile' ? <Check size={15} /> : <Copy size={15} />}
+              {copyStatus === 'profile' ? 'Profile copied' : 'Copy profile'}
+            </button>
+            <button
+              type="button"
+              className="drawer-copy"
+              onClick={() => void copyPersonCard(true)}
+              disabled={privacyMode || messages.length === 0}
+              title={
+                privacyMode
+                  ? 'Turn off Privacy mode to copy message contents.'
+                  : messages.length === 0
+                    ? 'No messages are available to copy.'
+                    : undefined
+              }
+            >
+              {copyStatus === 'messages' ? <Check size={15} /> : <MessageCircle size={15} />}
+              {copyStatus === 'messages' ? 'Messages copied' : 'Copy with messages'}
+            </button>
+          </div>
         </div>
+        <p className={`drawer-copy-status ${copyStatus === 'error' ? 'is-error' : ''}`} aria-live="polite">
+          {copyStatus === 'profile'
+            ? privacyMode
+              ? 'Profile copied with identifying details and private content omitted.'
+              : 'Profile copied as structured Markdown.'
+            : copyStatus === 'messages'
+              ? `Profile and ${messages.length.toLocaleString()} ${messages.length === 1 ? 'message' : 'messages'} copied oldest to newest.`
+              : copyStatus === 'error'
+                ? 'Could not access the clipboard. Check this browser’s clipboard permission.'
+                : ''}
+        </p>
 
         {privacyMode ? (
           <section className="privacy-redaction-card">
