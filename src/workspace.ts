@@ -1,7 +1,8 @@
 import { type ArchiveData, normalizeProfileUrl } from './data'
+import { isCalendarDate, isOutreachStatus, type OutreachStatus } from './outreach'
 
 const WORKSPACE_FORMAT = 'common-ground-workspace'
-const WORKSPACE_SCHEMA_VERSION = 2
+const WORKSPACE_SCHEMA_VERSION = 3
 const MAX_SAVED_SHORTLISTS = 100
 export const WORKSPACE_STORAGE_KEY = 'common-ground.workspace.v1'
 export const LEGACY_LOCATION_STORAGE_KEY = 'common-ground.locations.v1'
@@ -18,6 +19,8 @@ export interface PersonAnnotation {
   location?: AnnotatedValue<string>
   tags?: AnnotatedValue<string[]>
   notes?: AnnotatedValue<string>
+  outreachStatus?: AnnotatedValue<OutreachStatus>
+  lastContactedAt?: AnnotatedValue<string>
 }
 
 interface SourceArchiveMetadata {
@@ -50,6 +53,8 @@ export interface AnnotationDraft {
   location: string
   tags: string[]
   notes: string
+  outreachStatus?: OutreachStatus
+  lastContactedAt?: string
 }
 
 type UnknownRecord = Record<string, unknown>
@@ -145,15 +150,36 @@ function parseAnnotatedTags(value: unknown): AnnotatedValue<string[]> | undefine
   return { value: tags, source: value.source, updatedAt: value.updatedAt }
 }
 
+function parseOutreachStatus(value: unknown): AnnotatedValue<OutreachStatus> | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value) || !isOutreachStatus(value.value) || !validIso(value.updatedAt) || value.source !== 'manual') {
+    throw new Error('Workspace outreach status annotation is invalid.')
+  }
+  if (value.value === 'not-started') return undefined
+  return { value: value.value, source: 'manual', updatedAt: value.updatedAt }
+}
+
+function parseLastContactedAt(value: unknown): AnnotatedValue<string> | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value) || !isCalendarDate(value.value) || !validIso(value.updatedAt) || value.source !== 'manual') {
+    throw new Error('Workspace last contacted annotation is invalid.')
+  }
+  return { value: value.value, source: 'manual', updatedAt: value.updatedAt }
+}
+
 function parsePersonAnnotation(value: unknown): PersonAnnotation {
   if (!isRecord(value)) throw new Error('Workspace person annotation is invalid.')
   const annotation: PersonAnnotation = {}
   const location = parseAnnotatedString(value.location, 'location', 500)
   const tags = parseAnnotatedTags(value.tags)
   const notes = parseAnnotatedString(value.notes, 'notes', 50_000)
+  const outreachStatus = parseOutreachStatus(value.outreachStatus)
+  const lastContactedAt = parseLastContactedAt(value.lastContactedAt)
   if (location) annotation.location = location
   if (tags) annotation.tags = tags
   if (notes) annotation.notes = notes
+  if (outreachStatus) annotation.outreachStatus = outreachStatus
+  if (lastContactedAt) annotation.lastContactedAt = lastContactedAt
   return annotation
 }
 
@@ -226,7 +252,7 @@ export function parseWorkspaceFile(text: string): WorkspaceFile {
   if (!isRecord(value) || value.format !== WORKSPACE_FORMAT) {
     throw new Error('This is not a Common Ground workspace file.')
   }
-  if (value.schemaVersion !== 1 && value.schemaVersion !== WORKSPACE_SCHEMA_VERSION) {
+  if (value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== WORKSPACE_SCHEMA_VERSION) {
     throw new Error(`Workspace version ${String(value.schemaVersion)} is not supported.`)
   }
   if (!validIso(value.createdAt) || !validIso(value.updatedAt)) {
@@ -235,7 +261,7 @@ export function parseWorkspaceFile(text: string): WorkspaceFile {
   if (
     !Array.isArray(value.sourceArchives) ||
     !isRecord(value.people) ||
-    (value.schemaVersion === WORKSPACE_SCHEMA_VERSION &&
+    (value.schemaVersion >= 2 &&
       (!Array.isArray(value.savedShortlists) || value.savedShortlists.length > MAX_SAVED_SHORTLISTS))
   ) {
     throw new Error('Workspace structure is incomplete.')
@@ -284,10 +310,42 @@ export function updatePersonAnnotation(
   const location = cleanText(draft.location, 500)
   const tags = cleanTags(draft.tags)
   const notes = cleanText(draft.notes, 50_000)
+  const outreachStatus = draft.outreachStatus ?? 'not-started'
+  const lastContactedAt = draft.lastContactedAt?.trim() ?? ''
+  if (!isOutreachStatus(outreachStatus)) throw new Error('The outreach status is not supported.')
+  if (lastContactedAt && !isCalendarDate(lastContactedAt)) {
+    throw new Error('The last contacted date is invalid.')
+  }
+  const previous = workspace.people[id]
   const annotation: PersonAnnotation = {}
-  if (location) annotation.location = { value: location, source: 'manual', updatedAt: timestamp }
-  if (tags.length) annotation.tags = { value: tags, source: 'manual', updatedAt: timestamp }
-  if (notes) annotation.notes = { value: notes, source: 'manual', updatedAt: timestamp }
+  if (location) {
+    annotation.location =
+      previous?.location?.value === location
+        ? previous.location
+        : { value: location, source: 'manual', updatedAt: timestamp }
+  }
+  if (tags.length) {
+    annotation.tags =
+      previous?.tags?.value.join('|') === tags.join('|')
+        ? previous.tags
+        : { value: tags, source: 'manual', updatedAt: timestamp }
+  }
+  if (notes) {
+    annotation.notes =
+      previous?.notes?.value === notes ? previous.notes : { value: notes, source: 'manual', updatedAt: timestamp }
+  }
+  if (outreachStatus !== 'not-started') {
+    annotation.outreachStatus =
+      previous?.outreachStatus?.value === outreachStatus
+        ? previous.outreachStatus
+        : { value: outreachStatus, source: 'manual', updatedAt: timestamp }
+  }
+  if (lastContactedAt) {
+    annotation.lastContactedAt =
+      previous?.lastContactedAt?.value === lastContactedAt
+        ? previous.lastContactedAt
+        : { value: lastContactedAt, source: 'manual', updatedAt: timestamp }
+  }
 
   const people = { ...workspace.people }
   if (Object.keys(annotation).length) people[id] = annotation

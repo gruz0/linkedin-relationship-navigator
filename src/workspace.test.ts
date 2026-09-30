@@ -40,6 +40,8 @@ describe('portable workspace', () => {
         location: 'Dubai',
         tags: ['Founder', 'fintech', 'Founder'],
         notes: 'Met at a conference.',
+        outreachStatus: 'follow-up',
+        lastContactedAt: '2026-09-02',
       },
       secondDate,
     )
@@ -51,9 +53,38 @@ describe('portable workspace', () => {
       location: { value: 'Dubai', source: 'manual' },
       tags: { value: ['Founder', 'fintech'], source: 'manual' },
       notes: { value: 'Met at a conference.', source: 'manual' },
+      outreachStatus: { value: 'follow-up', source: 'manual' },
+      lastContactedAt: { value: '2026-09-02', source: 'manual' },
     })
     expect(text).not.toContain('messagesByPerson')
     expect(text).not.toContain('message content')
+  })
+
+  it('preserves timestamps for unchanged context when progress changes', () => {
+    const withContext = updatePersonAnnotation(
+      createWorkspace(archive(), firstDate),
+      'linkedin.com/in/ada',
+      { location: 'Dubai', tags: ['Founder'], notes: 'Keep this note.' },
+      firstDate,
+    )
+    const withProgress = updatePersonAnnotation(
+      withContext,
+      'linkedin.com/in/ada',
+      {
+        location: 'Dubai',
+        tags: ['Founder'],
+        notes: 'Keep this note.',
+        outreachStatus: 'contacted',
+        lastContactedAt: '2026-09-02',
+      },
+      secondDate,
+    )
+
+    expect(withProgress.people['linkedin.com/in/ada'].location?.updatedAt).toBe(firstDate.toISOString())
+    expect(withProgress.people['linkedin.com/in/ada'].tags?.updatedAt).toBe(firstDate.toISOString())
+    expect(withProgress.people['linkedin.com/in/ada'].notes?.updatedAt).toBe(firstDate.toISOString())
+    expect(withProgress.people['linkedin.com/in/ada'].outreachStatus?.updatedAt).toBe(secondDate.toISOString())
+    expect(withProgress.people['linkedin.com/in/ada'].lastContactedAt?.updatedAt).toBe(secondDate.toISOString())
   })
 
   it('round-trips named shortlists with normalized profile identifiers', () => {
@@ -67,7 +98,7 @@ describe('portable workspace', () => {
 
     const restored = parseWorkspaceFile(serializeWorkspace(workspace))
 
-    expect(restored.schemaVersion).toBe(2)
+    expect(restored.schemaVersion).toBe(3)
     expect(restored.savedShortlists).toEqual([
       {
         id: 'shortlist-1',
@@ -92,8 +123,18 @@ describe('portable workspace', () => {
 
     const migrated = parseWorkspaceFile(JSON.stringify(legacy))
 
-    expect(migrated.schemaVersion).toBe(2)
+    expect(migrated.schemaVersion).toBe(3)
     expect(migrated.people['linkedin.com/in/ada'].location?.value).toBe('Dubai')
+    expect(migrated.savedShortlists).toEqual([])
+  })
+
+  it('migrates version 2 workspaces with saved shortlists', () => {
+    const legacy = JSON.parse(serializeWorkspace(createWorkspace(archive(), firstDate)))
+    legacy.schemaVersion = 2
+
+    const migrated = parseWorkspaceFile(JSON.stringify(legacy))
+
+    expect(migrated.schemaVersion).toBe(3)
     expect(migrated.savedShortlists).toEqual([])
   })
 

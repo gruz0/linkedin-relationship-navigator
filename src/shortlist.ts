@@ -1,5 +1,6 @@
 import type { ArchiveData, Connection, ConversationStatus } from './data'
 import { statsFor } from './data'
+import { OUTREACH_STATUS_LABELS } from './outreach'
 import { type PrivacyAliases, personPresentation } from './privacy'
 import type { WorkspaceFile } from './workspace'
 
@@ -9,6 +10,8 @@ type ShortlistColumnKey =
   | 'company'
   | 'position'
   | 'roles'
+  | 'outreachStatus'
+  | 'lastWorked'
   | 'relationship'
   | 'lastContact'
   | 'messages'
@@ -36,8 +39,10 @@ const privacyColumns: readonly ShortlistColumn[] = [
   { key: 'name', label: 'Name' },
   { key: 'company', label: 'Company' },
   { key: 'roles', label: 'Roles' },
-  { key: 'relationship', label: 'Relationship' },
-  { key: 'lastContact', label: 'Last contact' },
+  { key: 'outreachStatus', label: 'My status' },
+  { key: 'lastWorked', label: 'My last touch' },
+  { key: 'relationship', label: 'Archived relationship' },
+  { key: 'lastContact', label: 'Archived last message' },
   { key: 'messages', label: 'Messages' },
   { key: 'threads', label: 'Threads' },
   { key: 'connectedOn', label: 'Connected on' },
@@ -50,8 +55,10 @@ const realDataColumns: readonly ShortlistColumn[] = [
   { key: 'company', label: 'Company' },
   { key: 'position', label: 'Position' },
   { key: 'roles', label: 'Roles' },
-  { key: 'relationship', label: 'Relationship' },
-  { key: 'lastContact', label: 'Last contact' },
+  { key: 'outreachStatus', label: 'My status' },
+  { key: 'lastWorked', label: 'My last touch' },
+  { key: 'relationship', label: 'Archived relationship' },
+  { key: 'lastContact', label: 'Archived last message' },
   { key: 'messages', label: 'Messages' },
   { key: 'threads', label: 'Threads' },
   { key: 'connectedOn', label: 'Connected on' },
@@ -90,6 +97,7 @@ export function buildShortlistRows({
     const presentation = personPresentation(person, privacyAliases, privacyMode)
     const annotation = workspace.people[person.id]
     const relationship = relationshipLabels[stats.status]
+    const outreachStatus = annotation?.outreachStatus?.value ?? 'not-started'
     const roles = person.roles.length ? person.roles.join(', ') : 'Other'
     const lastContact = dateValue(stats.lastMessageAt)
     const evidence = [
@@ -105,6 +113,8 @@ export function buildShortlistRows({
       company: presentation.company,
       position: presentation.position,
       roles,
+      outreachStatus: OUTREACH_STATUS_LABELS[outreachStatus],
+      lastWorked: annotation?.lastContactedAt?.value ?? '',
       relationship,
       lastContact,
       messages: String(stats.messageCount),

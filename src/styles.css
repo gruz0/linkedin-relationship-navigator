@@ -410,8 +410,16 @@ button.start-option:hover { border-color: #8aab9e; background: white; }
 .status-two-way { background: #3a8c67; }
 .status-outbound { background: #c28b36; }
 .status-inbound { background: #51819a; }
-.relationship-cell strong { font-size: 11px; font-weight: 600; }
+.relationship-cell > span:last-child { align-items: flex-start; }
+.relationship-cell strong { margin-top: 5px; font-size: 11px; font-weight: 600; }
 .relationship-cell small { color: var(--muted); margin-top: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 10px; }
+.outreach-pill { max-width: 100%; padding: 3px 7px; overflow: hidden; border-radius: 99px; background: #e7ebe8; color: #57645e; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; font-weight: 750; text-transform: uppercase; letter-spacing: .04em; }
+.outreach-contacted, .outreach-in-conversation { background: #dcebe4; color: #21634b; }
+.outreach-follow-up { background: #f5e9cf; color: #815c22; }
+.outreach-meeting-booked { background: #dfeaf0; color: #35677f; }
+.outreach-done { background: #e8e2f1; color: #644d85; }
+.outreach-not-a-fit { background: #eee8e4; color: #775b4b; }
+.relationship-cell .outreach-date { margin-top: 3px; }
 .relationship-cell .message-match-evidence { display: flex; align-items: center; gap: 4px; color: var(--green-2); font-weight: 700; }
 .date-cell { color: #626d68; font-size: 11px; font-variant-numeric: tabular-nums; }
 .row-arrow { position: absolute; right: 16px; color: #a7ada9; font-size: 19px; }
@@ -487,7 +495,16 @@ button.start-option:hover { border-color: #8aab9e; background: white; }
 .drawer-actions .drawer-copy:disabled { color: #9aa49f; cursor: not-allowed; }
 .drawer-copy-status { min-height: 14px; margin: 8px 0 -22px; color: var(--green); font-size: 10px; text-align: right; }
 .drawer-copy-status.is-error { color: #a54b3d; }
-.context-editor { margin: 24px 0; padding: 18px; border: 1px solid #d7dfd9; border-radius: var(--radius-panel); background: #f0f5f1; }
+.outreach-editor, .context-editor { margin: 24px 0; padding: 18px; border: 1px solid #d7dfd9; border-radius: var(--radius-panel); background: #f0f5f1; }
+.outreach-editor + .context-editor, .outreach-editor + .privacy-redaction-card { margin-top: -12px; }
+.outreach-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-top: 14px; }
+.outreach-fields label { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.outreach-fields label > span:first-child { color: #59645f; font-size: 11px; font-weight: 700; }
+.outreach-fields select, .outreach-fields input { width: 100%; height: 38px; border: 1px solid #ccd5cf; border-radius: var(--radius-control); background: white; padding: 0 10px; outline: none; color: var(--ink); font-size: 12px; }
+.outreach-fields select:focus, .outreach-fields input:focus { border-color: #72a092; box-shadow: 0 0 0 3px rgba(40,107,93,.07); }
+.date-input-row { display: flex; gap: 6px; }
+.date-input-row button { flex: 0 0 auto; padding: 0 10px; border: 1px solid #b9ccc3; border-radius: var(--radius-control); background: white; color: var(--green); font-size: 10px; font-weight: 700; }
+.context-editor { margin-top: 24px; }
 .context-editor-heading { display: flex; gap: 10px; color: var(--green); }
 .context-editor-heading > span { display: flex; flex-direction: column; }
 .context-editor-heading strong { color: var(--ink); font-size: 13px; }
@@ -668,7 +685,7 @@ button.start-option:hover { border-color: #8aab9e; background: white; }
   .drawer-actions { flex-direction: column; gap: 9px; }
   .drawer-copy-buttons { margin-left: 0; }
   .drawer-copy-status { margin-top: 8px; text-align: left; }
-  .context-fields { grid-template-columns: 1fr; }
+  .outreach-fields, .context-fields { grid-template-columns: 1fr; }
   .context-fields label:last-child { grid-column: auto; }
   .context-editor-footer { align-items: flex-start; flex-direction: column; }
   .conversation-metrics { grid-template-columns: repeat(2, 1fr); }

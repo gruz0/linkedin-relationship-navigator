@@ -290,6 +290,8 @@ export function createDemoData(): ArchiveData {
 }
 
 const demoLocations = ['Dubai', 'London', 'Berlin', 'Singapore', 'Toronto', 'Lisbon']
+const demoStatuses = ['contacted', 'in-conversation', 'follow-up', 'meeting-booked', 'done', 'not-a-fit'] as const
+
 const demoTags = [
   ['warm introduction', 'fintech'],
   ['follow up', 'product'],
@@ -316,6 +318,14 @@ export function createDemoWorkspace(data: ArchiveData): WorkspaceFile {
           'Strong operator perspective. Share the next product update when it is ready.',
           'Possible introduction to the team working on data portability.',
         ][index % 3],
+        source: 'manual',
+        updatedAt,
+      },
+      outreachStatus: { value: demoStatuses[index % demoStatuses.length], source: 'manual', updatedAt },
+      lastContactedAt: {
+        value: dateBefore(index < 6 ? index + 1 : 12 + index * 3)
+          .toISOString()
+          .slice(0, 10),
         source: 'manual',
         updatedAt,
       },
