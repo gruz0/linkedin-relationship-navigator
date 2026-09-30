@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/gruz0/linkedin-relationship-navigator/compare/v0.8.0...v0.9.0) (2026-09-30)
+
+
+### Features
+
+* track contact conversation progress ([#28](https://github.com/gruz0/linkedin-relationship-navigator/issues/28)) ([2ca398d](https://github.com/gruz0/linkedin-relationship-navigator/commit/2ca398d7dbb741d5228fd0a55dafc3d266f32834))
+
 ## [0.8.0](https://github.com/gruz0/linkedin-relationship-navigator/compare/v0.7.0...v0.8.0) (2026-09-22)
 
 
