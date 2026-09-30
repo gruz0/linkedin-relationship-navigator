@@ -1,4 +1,5 @@
 import type { Connection, ConversationStats, MessageRecord } from './data'
+import { OUTREACH_STATUS_LABELS } from './outreach'
 import type { PersonPresentation } from './privacy'
 import type { PersonAnnotation } from './workspace'
 
@@ -64,7 +65,12 @@ export function personCardToCopyText({
     sections.push(field('Tags', annotation?.tags?.value.join(', ') ?? 'None'))
   }
 
+  const outreachStatus = annotation?.outreachStatus?.value ?? 'not-started'
   sections.push(
+    '',
+    '## My progress',
+    field('Status', OUTREACH_STATUS_LABELS[outreachStatus]),
+    field('Last touch', annotation?.lastContactedAt?.value ?? 'Not available'),
     '',
     '## Relationship',
     field('Status', relationshipLabels[stats.status]),
@@ -84,7 +90,7 @@ export function personCardToCopyText({
     sections.push(
       '',
       '## Privacy',
-      'Privacy mode was on when this card was copied. Identifying details, annotations, and message contents are omitted.',
+      'Privacy mode was on when this card was copied. Identifying details, locations, tags, notes, and message contents are omitted.',
     )
     return `${sections.join('\n')}\n`
   }

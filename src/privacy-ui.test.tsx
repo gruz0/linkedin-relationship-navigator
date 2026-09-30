@@ -65,6 +65,8 @@ const annotation: PersonAnnotation = {
   location: { value: 'Dubai Marina', source: 'manual', updatedAt: '2026-09-01T00:00:00.000Z' },
   tags: { value: ['VIP investor'], source: 'manual', updatedAt: '2026-09-01T00:00:00.000Z' },
   notes: { value: 'Secret note about a future deal.', source: 'manual', updatedAt: '2026-09-01T00:00:00.000Z' },
+  outreachStatus: { value: 'follow-up', source: 'manual', updatedAt: '2026-09-01T00:00:00.000Z' },
+  lastContactedAt: { value: '2026-08-31', source: 'manual', updatedAt: '2026-09-01T00:00:00.000Z' },
 }
 
 const aliases = createPrivacyAliases([person])
@@ -101,6 +103,8 @@ describe('Privacy mode UI', () => {
     expect(html).toContain('Company 001')
     expect(html).toContain('Founder · CEO · C-suite')
     expect(html).toContain('<span class="role-tag">Founder</span>')
+    expect(html).toContain('Follow up')
+    expect(html).toContain('Last touch Aug 31, 2026')
     expect(html).not.toContain('matching messages')
     for (const value of sensitiveValues) expect(html).not.toContain(value)
   })
@@ -122,6 +126,9 @@ describe('Privacy mode UI', () => {
     expect(html).toContain('Person 001')
     expect(html).toContain('<span class="role-tag">Founder</span>')
     expect(html).toContain('<span class="role-tag">CEO</span>')
+    expect(html).toContain('Conversation progress')
+    expect(html).toContain('Follow up')
+    expect(html).toContain('2026-08-31')
     expect(html).toContain('1 archived message is hidden')
     expect(html).toContain('Privacy mode replaces the conversation with this summary.')
     expect(html).not.toContain('class="message-card')

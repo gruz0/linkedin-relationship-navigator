@@ -57,6 +57,16 @@ import {
 import { createDemoData, createDemoWorkspace } from './demo'
 import { HighlightedText, MessageContent } from './message-content'
 import { countMessageMatches, messageMatchesSearch, normalizeSearchQuery, textMatchesSearch } from './message-search'
+import {
+  matchesOutreachActivity,
+  OUTREACH_ACTIVITY_LABELS,
+  OUTREACH_ACTIVITY_OPTIONS,
+  OUTREACH_STATUS_LABELS,
+  OUTREACH_STATUS_OPTIONS,
+  type OutreachActivityFilter,
+  type OutreachStatus,
+  type OutreachStatusFilter,
+} from './outreach'
 import { personCardToCopyText } from './person-card-copy'
 import { createPrivacyAliases, DEFAULT_PRIVACY_MODE, type PrivacyAliases, personPresentation } from './privacy'
 import { countQuickQuestionMatches, QUICK_QUESTIONS, type QuickQuestion } from './quick-questions'
@@ -123,7 +133,7 @@ const LINKEDIN_DOWNLOAD_HELP_URL = 'https://www.linkedin.com/help/linkedin/answe
 
 type ConversationFilter = ConversationStatus | 'all' | 'any'
 type LocationFilter = 'all' | 'unknown' | string
-type SortMode = 'connected' | 'contacted' | 'messages' | 'name'
+type SortMode = 'connected' | 'contacted' | 'activity' | 'messages' | 'name'
 
 const conversationLabels: Record<ConversationStatus, string> = {
   'two-way': 'Two-way',
@@ -180,6 +190,14 @@ function downloadTextFile(contents: string, fileName: string, type: string) {
 function formatDate(date: Date | null, fallback = '—') {
   if (!date) return fallback
   return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'short', year: 'numeric' }).format(date)
+}
+
+function formatWorkspaceDate(value: string | undefined, fallback = '—') {
+  return value ? formatDate(new Date(`${value}T12:00:00.000Z`), fallback) : fallback
+}
+
+function localDateValue(date = new Date()) {
+  return new Date(date.valueOf() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
 }
 
 function linkedInUrl(profileUrl: string) {
@@ -718,6 +736,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   const [query, setQuery] = useState('')
   const [selectedRoles, setSelectedRoles] = useState<Set<RoleFilterCategory>>(new Set())
   const [conversation, setConversation] = useState<ConversationFilter>('all')
+  const [outreachStatus, setOutreachStatus] = useState<OutreachStatusFilter>('all')
+  const [outreachActivity, setOutreachActivity] = useState<OutreachActivityFilter>('all')
   const [recency, setRecency] = useState<RecencyFilter>('all')
   const [messageDepth, setMessageDepth] = useState<MessageDepthFilter>('all')
   const [threadCount, setThreadCount] = useState<ThreadCountFilter>('all')
@@ -808,6 +828,30 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
       ),
     [data, identifiable],
   )
+  const outreachStatusCounts = useMemo(
+    () =>
+      new Map(
+        OUTREACH_STATUS_OPTIONS.map((option) => [
+          option.value,
+          identifiable.filter(
+            (person) => (workspace.people[person.id]?.outreachStatus?.value ?? 'not-started') === option.value,
+          ).length,
+        ]),
+      ),
+    [identifiable, workspace],
+  )
+  const outreachActivityCounts = useMemo(
+    () =>
+      new Map(
+        OUTREACH_ACTIVITY_OPTIONS.map((option) => [
+          option.value,
+          identifiable.filter((person) =>
+            matchesOutreachActivity(workspace.people[person.id]?.lastContactedAt?.value, option.value, referenceDate),
+          ).length,
+        ]),
+      ),
+    [identifiable, referenceDate, workspace],
+  )
   const cityOptions = useMemo(
     () =>
       [
@@ -825,6 +869,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
       const stats = statsFor(data, person.id)
       const annotation = workspace.people[person.id]
       const location = annotation?.location?.value.trim() ?? ''
+      const personalStatus = annotation?.outreachStatus?.value ?? 'not-started'
       const presentation = personPresentation(person, privacyAliases, privacyMode)
       const searchValues = privacyMode
         ? [presentation.name, presentation.company, presentation.position, person.roles.join(' ')]
@@ -843,6 +888,12 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
       const matchesRole = matchesRoleFilters(person.roles, selectedRoles)
       const matchesConversation =
         conversation === 'all' || (conversation === 'any' ? stats.status !== 'none' : stats.status === conversation)
+      const matchesOutreachStatus = outreachStatus === 'all' || personalStatus === outreachStatus
+      const matchesActivity = matchesOutreachActivity(
+        annotation?.lastContactedAt?.value,
+        outreachActivity,
+        referenceDate,
+      )
       const matchesRelationship = matchesRelationshipFilters(
         stats,
         recency,
@@ -859,6 +910,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
         matchesQuery &&
         matchesRole &&
         matchesConversation &&
+        matchesOutreachStatus &&
+        matchesActivity &&
         matchesRelationship &&
         matchesLocation &&
         (privacyMode || !dubaiSignalsOnly || person.dubaiCompanySignal)
@@ -872,6 +925,13 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
         )
       }
       if (sort === 'messages') return statsFor(data, b.id).messageCount - statsFor(data, a.id).messageCount
+      if (sort === 'activity') {
+        return (
+          (Date.parse(workspace.people[b.id]?.lastContactedAt?.value ?? '') || 0) -
+            (Date.parse(workspace.people[a.id]?.lastContactedAt?.value ?? '') || 0) ||
+          (workspace.people[b.id]?.outreachStatus ? 1 : 0) - (workspace.people[a.id]?.outreachStatus ? 1 : 0)
+        )
+      }
       if (sort === 'contacted') {
         return (
           (statsFor(data, b.id).lastMessageAt?.valueOf() ?? 0) - (statsFor(data, a.id).lastMessageAt?.valueOf() ?? 0)
@@ -881,6 +941,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     })
   }, [
     conversation,
+    outreachActivity,
+    outreachStatus,
     data,
     dubaiSignalsOnly,
     identifiable,
@@ -926,6 +988,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
       query,
       selectedRoles,
       conversation,
+      outreachStatus,
+      outreachActivity,
       recency,
       messageDepth,
       threadCount,
@@ -943,6 +1007,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
   const activeFilterCount =
     selectedRoles.size +
     (conversation === 'all' ? 0 : 1) +
+    (outreachStatus === 'all' ? 0 : 1) +
+    (outreachActivity === 'all' ? 0 : 1) +
     (recency === 'all' ? 0 : 1) +
     (messageDepth === 'all' ? 0 : 1) +
     (threadCount === 'all' ? 0 : 1) +
@@ -954,6 +1020,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
       !query &&
       locationFilter === 'all' &&
       !dubaiSignalsOnly &&
+      outreachStatus === 'all' &&
+      outreachActivity === 'all' &&
       conversation === question.conversation &&
       recency === question.recency &&
       messageDepth === question.messageDepth &&
@@ -1031,6 +1099,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     setQuery('')
     setSelectedRoles(new Set())
     setConversation('all')
+    setOutreachStatus('all')
+    setOutreachActivity('all')
     setRecency('all')
     setMessageDepth('all')
     setThreadCount('all')
@@ -1053,6 +1123,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
     setQuery('')
     setSelectedRoles(new Set(question.roles))
     setConversation(question.conversation)
+    setOutreachStatus('all')
+    setOutreachActivity('all')
     setRecency(question.recency)
     setMessageDepth(question.messageDepth)
     setThreadCount(question.threadCount)
@@ -1404,7 +1476,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
             </strong>
             <span>
               {privacyMode
-                ? 'Names, companies, raw job titles, annotations, and messages stay hidden. Broad roles such as Founder or Engineering are derived from those titles and remain visible for filtering and search. Source files and workspace data are unchanged.'
+                ? 'Names, companies, raw job titles, private locations, tags, notes, and messages stay hidden. Progress, last-touch dates, and broad roles such as Founder or Engineering remain visible for working and filtering. Source files and workspace data are unchanged.'
                 : isDemo
                   ? 'They illustrate context you can add yourself; LinkedIn does not supply locations for connections in this export.'
                   : 'Add a city when reviewing a person. Company-name hints are available separately and are never treated as locations.'}
@@ -1469,7 +1541,44 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
                 </div>
               </FilterSection>
 
-              <FilterSection title="Conversation">
+              <FilterSection title="My progress">
+                <div className="select-wrap">
+                  <ContactRound size={15} />
+                  <select
+                    aria-label="My progress"
+                    value={outreachStatus}
+                    onChange={(event) => setOutreachStatus(event.target.value as OutreachStatusFilter)}
+                  >
+                    <option value="all">All statuses · {identifiable.length.toLocaleString()}</option>
+                    {OUTREACH_STATUS_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label} · {outreachStatusCounts.get(option.value)?.toLocaleString() ?? '0'}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} />
+                </div>
+              </FilterSection>
+
+              <FilterSection title="My last touch">
+                <div className="select-wrap">
+                  <CalendarDays size={15} />
+                  <select
+                    aria-label="My last touch"
+                    value={outreachActivity}
+                    onChange={(event) => setOutreachActivity(event.target.value as OutreachActivityFilter)}
+                  >
+                    {OUTREACH_ACTIVITY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label} · {outreachActivityCounts.get(option.value)?.toLocaleString() ?? '0'}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} />
+                </div>
+              </FilterSection>
+
+              <FilterSection title="Archived conversation">
                 <div className="select-wrap">
                   <MessageCircle size={15} />
                   <select
@@ -1487,11 +1596,11 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
                 </div>
               </FilterSection>
 
-              <FilterSection title="Last contact">
+              <FilterSection title="Archived message recency">
                 <div className="select-wrap">
                   <Clock3 size={15} />
                   <select
-                    aria-label="Last contact"
+                    aria-label="Archived message recency"
                     value={recency}
                     onChange={(event) => setRecency(event.target.value as RecencyFilter)}
                   >
@@ -1632,7 +1741,8 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
                   <ArrowDownUp size={16} />
                   <select value={sort} onChange={(event) => setSort(event.target.value as SortMode)}>
                     <option value="connected">Recently connected</option>
-                    <option value="contacted">Recently contacted</option>
+                    <option value="activity">My recent activity</option>
+                    <option value="contacted">Recent archived message</option>
                     <option value="messages">Most messages</option>
                     <option value="name">Name A–Z</option>
                   </select>
@@ -1675,6 +1785,18 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
                       <X size={12} />
                     </button>
                   ))}
+                  {outreachStatus !== 'all' && (
+                    <button type="button" onClick={() => setOutreachStatus('all')}>
+                      {OUTREACH_STATUS_LABELS[outreachStatus]}
+                      <X size={12} />
+                    </button>
+                  )}
+                  {outreachActivity !== 'all' && (
+                    <button type="button" onClick={() => setOutreachActivity('all')}>
+                      My activity: {OUTREACH_ACTIVITY_LABELS[outreachActivity]}
+                      <X size={12} />
+                    </button>
+                  )}
                   {conversation !== 'all' && (
                     <button type="button" onClick={() => setConversation('all')}>
                       {conversationFilterLabels[conversation]}
@@ -1742,7 +1864,7 @@ export function Dashboard({ data, isDemo, onReset }: { data: ArchiveData; isDemo
               <div className="people-head">
                 <span>Person</span>
                 <span>Role</span>
-                <span>Relationship</span>
+                <span>Progress &amp; relationship</span>
                 <span>Connected</span>
               </div>
               {filtered.slice(0, visibleCount).map((person) => (
@@ -2007,6 +2129,8 @@ export function PersonRow({
 }) {
   const stats = statsFor(data, person.id)
   const location = annotation?.location?.value
+  const outreachStatus = annotation?.outreachStatus?.value ?? 'not-started'
+  const lastContactedAt = annotation?.lastContactedAt?.value
   const presentation = personPresentation(person, privacyAliases, privacyMode)
   return (
     <div className={`person-row-wrap ${shortlisted ? 'selected' : ''}`}>
@@ -2055,6 +2179,10 @@ export function PersonRow({
         <span className="relationship-cell">
           <span className={`status-dot status-${stats.status}`} />
           <span>
+            <span className={`outreach-pill outreach-${outreachStatus}`}>{OUTREACH_STATUS_LABELS[outreachStatus]}</span>
+            <small className="outreach-date">
+              {lastContactedAt ? `Last touch ${formatWorkspaceDate(lastContactedAt)}` : 'No activity logged'}
+            </small>
             <strong>{conversationLabels[stats.status]}</strong>
             <small>
               {stats.messageCount
@@ -2099,6 +2227,8 @@ export function PersonDrawer({
   const location = annotation?.location?.value ?? ''
   const tags = annotation?.tags?.value ?? []
   const notes = annotation?.notes?.value ?? ''
+  const outreachStatus = annotation?.outreachStatus?.value ?? 'not-started'
+  const lastContactedAt = annotation?.lastContactedAt?.value ?? ''
   const normalizedMessageSearchQuery = privacyMode ? '' : normalizeSearchQuery(messageSearchQuery)
   const matchingMessageIndexes = useMemo(
     () =>
@@ -2116,6 +2246,8 @@ export function PersonDrawer({
   const [draftLocation, setDraftLocation] = useState(location)
   const [draftTags, setDraftTags] = useState(tags.join(', '))
   const [draftNotes, setDraftNotes] = useState(notes)
+  const [draftOutreachStatus, setDraftOutreachStatus] = useState<OutreachStatus>(outreachStatus)
+  const [draftLastContactedAt, setDraftLastContactedAt] = useState(lastContactedAt)
   const [messageLimit, setMessageLimit] = useState(8)
   const [copyStatus, setCopyStatus] = useState<'idle' | 'profile' | 'messages' | 'error'>('idle')
   const presentation = personPresentation(person, privacyAliases, privacyMode)
@@ -2132,12 +2264,24 @@ export function PersonDrawer({
     annotation?.location?.updatedAt,
     annotation?.tags?.updatedAt,
     annotation?.notes?.updatedAt,
+    annotation?.outreachStatus?.updatedAt,
+    annotation?.lastContactedAt?.updatedAt,
   ].filter((value): value is string => Boolean(value))
   const annotationUpdatedAt = annotationDates.length
     ? new Date(Math.max(...annotationDates.map((value) => Date.parse(value))))
     : null
   const annotationChanged =
     draftLocation.trim() !== location || parsedDraftTags.join('|') !== tags.join('|') || draftNotes.trim() !== notes
+  const outreachChanged = draftOutreachStatus !== outreachStatus || draftLastContactedAt.trim() !== lastContactedAt
+
+  const saveDraft = () =>
+    onAnnotationChange({
+      location: draftLocation,
+      tags: parsedDraftTags,
+      notes: draftNotes,
+      outreachStatus: draftOutreachStatus,
+      lastContactedAt: draftLastContactedAt,
+    })
 
   useEffect(() => {
     const close = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
@@ -2198,7 +2342,7 @@ export function PersonDrawer({
               {role}
             </span>
           ))}
-          {privacyMode && annotation && <span className="personal-tag">Private annotations hidden</span>}
+          {privacyMode && annotation && <span className="personal-tag">Private context hidden</span>}
           {!privacyMode && person.dubaiCompanySignal && <span className="hint-tag">Company mentions Dubai</span>}
         </div>
         <div className="drawer-actions">
@@ -2245,11 +2389,69 @@ export function PersonDrawer({
                 : ''}
         </p>
 
+        <section className="outreach-editor">
+          <div className="context-editor-heading">
+            <ContactRound size={18} />
+            <span>
+              <strong>Conversation progress</strong>
+              <small>Use this to remember who to work next. Saved in your local workspace.</small>
+            </span>
+          </div>
+          <div className="outreach-fields">
+            <label>
+              <span>Status</span>
+              <select
+                value={draftOutreachStatus}
+                onChange={(event) => setDraftOutreachStatus(event.target.value as OutreachStatus)}
+              >
+                {OUTREACH_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Last touch</span>
+              <span className="date-input-row">
+                <input
+                  type="date"
+                  value={draftLastContactedAt}
+                  max={localDateValue()}
+                  onChange={(event) => {
+                    setDraftLastContactedAt(event.target.value)
+                    if (event.target.value && draftOutreachStatus === 'not-started') {
+                      setDraftOutreachStatus('contacted')
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraftLastContactedAt(localDateValue())
+                    if (draftOutreachStatus === 'not-started') setDraftOutreachStatus('contacted')
+                  }}
+                >
+                  Today
+                </button>
+              </span>
+            </label>
+          </div>
+          <div className="context-editor-footer">
+            <small>
+              {lastContactedAt ? `Last touch ${formatWorkspaceDate(lastContactedAt)}` : 'No activity logged yet'}
+            </small>
+            <button type="button" onClick={saveDraft} disabled={!outreachChanged}>
+              <Check size={15} /> Save progress
+            </button>
+          </div>
+        </section>
+
         {privacyMode ? (
           <section className="privacy-redaction-card">
             <EyeOff size={20} />
             <div>
-              <strong>Annotations hidden</strong>
+              <strong>Private context hidden</strong>
               <span>Locations, tags, and notes are not rendered while Privacy mode is active.</span>
             </div>
           </section>
@@ -2297,13 +2499,7 @@ export function PersonDrawer({
               <small>
                 {annotationUpdatedAt ? `Last updated ${formatDate(annotationUpdatedAt)}` : 'No annotation yet'}
               </small>
-              <button
-                type="button"
-                onClick={() =>
-                  onAnnotationChange({ location: draftLocation, tags: parsedDraftTags, notes: draftNotes })
-                }
-                disabled={!annotationChanged}
-              >
+              <button type="button" onClick={saveDraft} disabled={!annotationChanged}>
                 <Check size={15} /> Save annotation
               </button>
             </div>

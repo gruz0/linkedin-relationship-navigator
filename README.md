@@ -43,7 +43,7 @@ See [LinkedIn’s current download instructions](https://www.linkedin.com/help/l
 - Filter conversations by recency, message depth, thread count, and who sent the latest archived message
 - View message counts, recency, threads, and conversation history
 - Open explicit HTTP(S) links from visible message history without interpreting message text as HTML
-- Add private locations, tags, and notes in browser storage
+- Track outreach status and last-touch dates, and add private locations, tags, and notes in browser storage
 - Save named shortlists and export or restore them with annotations in a versioned workspace file
 - Mask identifying information with a privacy-first presentation mode
 - Identify company names that mention Dubai without treating them as a person's location
@@ -92,7 +92,7 @@ The app is configured to use cookie-free Umami analytics on its production host 
 
 LinkedIn does not include connection locations in this export. “No messages found” means no matching profile URL was present in the exported message history; it is not proof that two people have never spoken elsewhere.
 
-Workspace exports contain annotations, named shortlists with profile identifiers, and basic source-archive metadata. They do not contain LinkedIn message bodies.
+Workspace exports contain progress, last-touch dates, annotations, named shortlists with profile identifiers, and basic source-archive metadata. They do not contain LinkedIn message bodies.
 
 ## Run locally
 

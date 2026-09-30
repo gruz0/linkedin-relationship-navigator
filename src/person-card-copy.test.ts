@@ -25,6 +25,9 @@ describe('person card clipboard text', () => {
     expect(text).toContain(`- Company: ${person.company}`)
     expect(text).toContain(`- LinkedIn profile: https://www.${person.profileUrl}`)
     expect(text).toContain(`- Location: ${workspace.people[person.id].location?.value}`)
+    expect(text).toContain('## My progress')
+    expect(text).toContain('- Status: Contacted')
+    expect(text).toContain('- Last touch: 2026-08-31')
     expect(text).toContain(workspace.people[person.id].notes?.value)
     expect(text).not.toContain('## Conversation history')
     expect(text).not.toContain(messages[0].content)
@@ -71,7 +74,7 @@ describe('person card clipboard text', () => {
     ])
   })
 
-  it('omits identifying details, annotations, and message contents in Privacy mode', () => {
+  it('keeps progress but omits identifying details, private context, and messages in Privacy mode', () => {
     const data = createDemoData()
     const workspace = createDemoWorkspace(data)
     const person = data.connections[0]
@@ -87,6 +90,8 @@ describe('person card clipboard text', () => {
     })
 
     expect(text).toContain('- Name: Person 001')
+    expect(text).toContain('- Status: Contacted')
+    expect(text).toContain('- Last touch: 2026-08-31')
     expect(text).toContain('Privacy mode was on')
     expect(text).not.toContain(person.fullName)
     expect(text).not.toContain(person.company)
